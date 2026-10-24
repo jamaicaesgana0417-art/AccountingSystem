@@ -1,3 +1,4 @@
+
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -11,21 +12,14 @@ public class AuthService {
     private static final int KEY_BITS = 256;
 
     public static void initialize() throws SQLException {
-        String sql = """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-                password_hash BLOB NOT NULL,
-                password_salt BLOB NOT NULL,
-                iterations INTEGER NOT NULL
-            )
-            """;
+        String sql = "SELECT id FROM public.users LIMIT 0";
 
         try (
             Connection connection = Database.connect();
             Statement statement = connection.createStatement()
         ) {
-            statement.executeUpdate(sql);
+            statement.executeQuery(sql).close();
+            System.out.println("Users table is ready.");
         }
     }
 
@@ -54,14 +48,16 @@ public class AuthService {
         byte[] hash = hash(password, salt, ITERATIONS);
 
         String sql = """
-            INSERT INTO users (
+            INSERT INTO public.users (
                 username, password_hash, password_salt, iterations
             ) VALUES (?, ?, ?, ?)
             """;
 
         try (Connection connection = Database.connect()) {
-            String checkSql =
-                "SELECT 1 FROM users WHERE username = ?";
+            String checkSql = """
+                SELECT 1 FROM public.users
+                WHERE LOWER(username) = LOWER(?)
+                """;
 
             try (
                 PreparedStatement check =
@@ -91,7 +87,6 @@ public class AuthService {
         }
     }
 
-    // Returns the saved username on success; otherwise returns null.
     public static String login(
         String username,
         char[] password
@@ -99,8 +94,8 @@ public class AuthService {
 
         String sql = """
             SELECT username, password_hash, password_salt, iterations
-            FROM users
-            WHERE username = ?
+            FROM public.users
+            WHERE LOWER(username) = LOWER(?)
             """;
 
         try (
