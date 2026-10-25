@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
@@ -59,7 +60,9 @@ public class NewTransactionPanel extends JPanel {
 
         JButton clearButton = new JButton("Clear Form");
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttons = new JPanel(
+            new FlowLayout(FlowLayout.RIGHT)
+        );
         buttons.setOpaque(false);
         buttons.add(clearButton);
         buttons.add(postButton);
@@ -159,7 +162,9 @@ public class NewTransactionPanel extends JPanel {
         }
 
         if (debit.id == credit.id) {
-            showWarning("Debit and credit accounts must be different.");
+            showWarning(
+                "Debit and credit accounts must be different."
+            );
             return;
         }
 
@@ -180,7 +185,9 @@ public class NewTransactionPanel extends JPanel {
                 showWarning("Amount must be greater than zero.");
                 return;
             }
-        } catch (NumberFormatException | ArithmeticException exception) {
+        } catch (
+            NumberFormatException | ArithmeticException exception
+        ) {
             showWarning(
                 "Enter a valid amount with at most two decimal places."
                 + "\nExample: 1000.00"
@@ -260,11 +267,15 @@ public class NewTransactionPanel extends JPanel {
                     }
                 }
 
+                // Insert the transaction and retrieve its PostgreSQL ID.
                 String transactionSql = """
                     INSERT INTO transactions (
                         transaction_date, description
                     ) VALUES (?, ?)
+                    RETURNING id
                     """;
+
+                long transactionId;
 
                 try (
                     PreparedStatement statement =
@@ -272,26 +283,19 @@ public class NewTransactionPanel extends JPanel {
                 ) {
                     statement.setString(1, date.toString());
                     statement.setString(2, description);
-                    statement.executeUpdate();
-                }
 
-                long transactionId;
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next()) {
+                            throw new SQLException(
+                                "Could not retrieve the transaction ID."
+                            );
+                        }
 
-                try (
-                    Statement statement = connection.createStatement();
-                    ResultSet result = statement.executeQuery(
-                        "SELECT last_insert_rowid()"
-                    )
-                ) {
-                    if (!result.next()) {
-                        throw new SQLException(
-                            "Could not retrieve the transaction ID."
-                        );
+                        transactionId = result.getLong("id");
                     }
-
-                    transactionId = result.getLong(1);
                 }
 
+                // Insert the debit and credit journal lines.
                 String lineSql = """
                     INSERT INTO journal_lines (
                         transaction_id, account_id,
@@ -303,12 +307,14 @@ public class NewTransactionPanel extends JPanel {
                     PreparedStatement statement =
                         connection.prepareStatement(lineSql)
                 ) {
+                    // Debit entry
                     statement.setLong(1, transactionId);
                     statement.setInt(2, debitId);
                     statement.setLong(3, centavos);
                     statement.setLong(4, 0);
                     statement.executeUpdate();
 
+                    // Credit entry
                     statement.setLong(1, transactionId);
                     statement.setInt(2, creditId);
                     statement.setLong(3, 0);
@@ -325,6 +331,7 @@ public class NewTransactionPanel extends JPanel {
                 } catch (SQLException rollbackException) {
                     exception.addSuppressed(rollbackException);
                 }
+
                 throw exception;
             }
         }
@@ -340,12 +347,17 @@ public class NewTransactionPanel extends JPanel {
 
     private void showWarning(String message) {
         JOptionPane.showMessageDialog(
-            this, message, "Check Transaction",
+            this,
+            message,
+            "Check Transaction",
             JOptionPane.WARNING_MESSAGE
         );
     }
 
-    private void showError(String message, SQLException exception) {
+    private void showError(
+        String message,
+        SQLException exception
+    ) {
         exception.printStackTrace();
 
         JOptionPane.showMessageDialog(
