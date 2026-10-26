@@ -8,15 +8,15 @@ public class Theme {
 
     // Mixed style: TikTok (dark + red + cyan), Facebook (clean + rounded),
     // Claude (warm tones + serif heading)
-    public static final Color BG     = new Color(0x121110);
-    public static final Color CARD   = new Color(0x1D1B18);
-    public static final Color FIELD  = new Color(0x2A2724);
-    public static final Color TEXT   = new Color(0xF5F1EA);
-    public static final Color MUTED  = new Color(0xA39E94);
-    public static final Color BORDER = new Color(0x3A3630);
-    public static final Color ACCENT = new Color(0xFE2C55); // buttons
-    public static final Color FOCUS  = new Color(0x25F4EE); // focused field glow
-    public static final Color ERROR  = new Color(0xFF7A7A);
+        public static final Color BG     = new Color(0xF5F1EA); // Claude cream
+    public static final Color CARD   = new Color(0xFFFFFF);
+    public static final Color FIELD  = new Color(0xF0F2F5); // Facebook gray
+    public static final Color TEXT   = new Color(0x1C1E21);
+    public static final Color MUTED  = new Color(0x65676B);
+    public static final Color BORDER = new Color(0xDDDFE2);
+    public static final Color ACCENT = new Color(0x1877F2); // Facebook blue button
+    public static final Color FOCUS  = new Color(0xFE2C55); // TikTok red glow
+    public static final Color ERROR  = new Color(0xD93025);
 
     public static final Font HEADING = new Font("Georgia", Font.BOLD, 26);
     public static final Font BODY    = new Font("Segoe UI", Font.PLAIN, 14);
