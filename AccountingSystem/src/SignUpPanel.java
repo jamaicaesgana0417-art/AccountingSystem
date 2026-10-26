@@ -4,55 +4,76 @@ import javax.swing.*;
 
 public class SignUpPanel extends JPanel {
 
-    private final JTextField usernameField = new JTextField(20);
-    private final JPasswordField passwordField = new JPasswordField(20);
-    private final JPasswordField confirmField = new JPasswordField(20);
-    private final JButton signUpButton = new JButton("Create account");
+    private static final Color SUCCESS = new Color(0x4CD964);
+
+    private final JTextField usernameField = Theme.textField("Username");
+    private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
+    private final JPasswordField confirmField = Theme.passwordField("Confirm password");
+    private final JButton signUpButton = Theme.primaryButton("Create account");
+    private final JButton backButton = Theme.secondaryButton("Back to login");
     private final JLabel messageLabel = new JLabel(" ");
 
-    // The main window can use these to switch screens later.
     private Runnable onSignUpSuccess = () -> {};
+    private Runnable onBackToLogin = () -> {};
 
     public SignUpPanel() {
         setLayout(new GridBagLayout());
+        setBackground(Theme.BG);
+
+        JPanel card = Theme.card();
+        card.setLayout(new GridBagLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
+
+        JLabel title = new JLabel("Create account");
+        title.setFont(Theme.HEADING);
+        title.setForeground(Theme.TEXT);
+
+        JLabel subtitle = new JLabel("Join the accounting system");
+        subtitle.setFont(Theme.BODY);
+        subtitle.setForeground(Theme.MUTED);
+
+        messageLabel.setFont(Theme.BODY.deriveFont(13f));
+        messageLabel.setForeground(Theme.ERROR);
+
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6, 6, 6, 6);
-        c.anchor = GridBagConstraints.WEST;
+        c.gridx = 0;
+        c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel title = new JLabel("Sign Up");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
-        c.gridx = 0; c.gridy = 0; c.gridwidth = 2;
-        add(title, c);
+        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
+        c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
+        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
+        c.gridy = 3; c.insets = new Insets(0, 0, 12, 0); card.add(passwordField, c);
+        c.gridy = 4; c.insets = new Insets(0, 0, 8, 0);  card.add(confirmField, c);
+        c.gridy = 5; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
+        c.gridy = 6; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
+        c.gridy = 7; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
 
-        c.gridwidth = 1;
-        c.gridx = 0; c.gridy = 1;
-        add(new JLabel("Username:"), c);
-        c.gridx = 1;
-        add(usernameField, c);
-
-        c.gridx = 0; c.gridy = 2;
-        add(new JLabel("Password:"), c);
-        c.gridx = 1;
-        add(passwordField, c);
-
-        c.gridx = 0; c.gridy = 3;
-        add(new JLabel("Confirm password:"), c);
-        c.gridx = 1;
-        add(confirmField, c);
-
-        c.gridx = 1; c.gridy = 4;
-        add(signUpButton, c);
-
-        c.gridx = 0; c.gridy = 5; c.gridwidth = 2;
-        add(messageLabel, c);
+        add(card);
 
         signUpButton.addActionListener(e -> doSignUp());
         confirmField.addActionListener(e -> doSignUp());
+        usernameField.addActionListener(e -> passwordField.requestFocusInWindow());
+        passwordField.addActionListener(e -> confirmField.requestFocusInWindow());
+        backButton.addActionListener(e -> {
+            clearAll();
+            onBackToLogin.run();
+        });
     }
 
     public void setOnSignUpSuccess(Runnable callback) {
         this.onSignUpSuccess = callback;
+    }
+
+    public void setOnBackToLogin(Runnable callback) {
+        this.onBackToLogin = callback;
+    }
+
+    private void clearAll() {
+        usernameField.setText("");
+        passwordField.setText("");
+        confirmField.setText("");
+        messageLabel.setText(" ");
     }
 
     private void doSignUp() {
@@ -60,23 +81,27 @@ public class SignUpPanel extends JPanel {
         char[] password = passwordField.getPassword();
         char[] confirm = confirmField.getPassword();
 
+        String problem = null;
         if (username.isEmpty() || password.length == 0) {
-            showError("Please fill in all the fields.");
-            Arrays.fill(password, ' ');
-            Arrays.fill(confirm, ' ');
-            return;
+            problem = "Please fill in all the fields.";
+        } else if (!username.matches("[A-Za-z0-9_]{3,30}")) {
+            problem = "Username: 3–30 letters, numbers, or _ only.";
+        } else if (password.length < 8) {
+            problem = "Password needs at least 8 characters.";
+        } else if (!Arrays.equals(password, confirm)) {
+            problem = "Passwords do not match.";
         }
 
-        if (!Arrays.equals(password, confirm)) {
-            showError("Passwords do not match.");
-            Arrays.fill(password, ' ');
-            Arrays.fill(confirm, ' ');
-            return;
-        }
         Arrays.fill(confirm, ' ');
 
+        if (problem != null) {
+            Arrays.fill(password, ' ');
+            showError(problem);
+            return;
+        }
+
         signUpButton.setEnabled(false);
-        messageLabel.setForeground(Color.DARK_GRAY);
+        messageLabel.setForeground(Theme.MUTED);
         messageLabel.setText("Creating account...");
 
         new SwingWorker<Void, Void>() {
@@ -95,17 +120,12 @@ public class SignUpPanel extends JPanel {
                 signUpButton.setEnabled(true);
                 try {
                     get();
-                    usernameField.setText("");
-                    passwordField.setText("");
-                    confirmField.setText("");
-                    messageLabel.setForeground(new Color(0, 128, 0));
-                    messageLabel.setText("Account created! You can log in now.");
+                    clearAll();
                     onSignUpSuccess.run();
                 } catch (Exception ex) {
                     Throwable cause = (ex.getCause() != null) ? ex.getCause() : ex;
                     if (cause instanceof IllegalArgumentException) {
-                        // Our own rules: bad username, short password, name taken
-                        showError("<html>" + cause.getMessage() + "</html>");
+                        showError(cause.getMessage());
                     } else {
                         showError("Could not create account. Check your connection.");
                         ex.printStackTrace();
@@ -116,19 +136,7 @@ public class SignUpPanel extends JPanel {
     }
 
     private void showError(String message) {
-        messageLabel.setForeground(Color.RED);
-        messageLabel.setText(message);
-    }
-
-    // TEMPORARY: lets you test this screen by itself.
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Sign up test");
-            frame.add(new SignUpPanel());
-            frame.setSize(450, 320);
-            frame.setLocationRelativeTo(null);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setVisible(true);
-        });
+        messageLabel.setForeground(Theme.ERROR);
+        messageLabel.setText("<html><div style='width:280px'>" + message + "</div></html>");
     }
 }

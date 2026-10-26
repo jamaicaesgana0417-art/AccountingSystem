@@ -5,48 +5,61 @@ import javax.swing.*;
 
 public class LoginPanel extends JPanel {
 
-    private final JTextField usernameField = new JTextField(20);
-    private final JPasswordField passwordField = new JPasswordField(20);
-    private final JButton loginButton = new JButton("Login");
+    private final JTextField usernameField = Theme.textField("Username");
+    private final JPasswordField passwordField = Theme.passwordField("Password");
+    private final JButton loginButton = Theme.primaryButton("Log in");
+    private final JButton signUpButton = Theme.secondaryButton("Create new account");
     private final JLabel messageLabel = new JLabel(" ");
 
-    // The main window will set this later, so it knows when login worked.
     private Consumer<String> onLoginSuccess = username -> {};
+    private Runnable onSignUpClick = () -> {};
 
     public LoginPanel() {
         setLayout(new GridBagLayout());
+        setBackground(Theme.BG);
+
+        JPanel card = Theme.card();
+        card.setLayout(new GridBagLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
+
+        JLabel title = new JLabel("Welcome back");
+        title.setFont(Theme.HEADING);
+        title.setForeground(Theme.TEXT);
+
+        JLabel subtitle = new JLabel("Log in to your accounting system");
+        subtitle.setFont(Theme.BODY);
+        subtitle.setForeground(Theme.MUTED);
+
+        messageLabel.setFont(Theme.BODY.deriveFont(13f));
+        messageLabel.setForeground(Theme.ERROR);
+
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6, 6, 6, 6);
-        c.anchor = GridBagConstraints.WEST;
+        c.gridx = 0;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel title = new JLabel("Login");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
-        c.gridx = 0; c.gridy = 0; c.gridwidth = 2;
-        add(title, c);
+        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
+        c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
+        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
+        c.gridy = 3; c.insets = new Insets(0, 0, 8, 0);  card.add(passwordField, c);
+        c.gridy = 4; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
+        c.gridy = 5; c.insets = new Insets(0, 0, 18, 0); card.add(loginButton, c);
+        c.gridy = 6; c.insets = new Insets(0, 0, 0, 0);  card.add(signUpButton, c);
 
-        c.gridwidth = 1;
-        c.gridx = 0; c.gridy = 1;
-        add(new JLabel("Username:"), c);
-        c.gridx = 1;
-        add(usernameField, c);
-
-        c.gridx = 0; c.gridy = 2;
-        add(new JLabel("Password:"), c);
-        c.gridx = 1;
-        add(passwordField, c);
-
-        c.gridx = 1; c.gridy = 3;
-        add(loginButton, c);
-
-        c.gridx = 0; c.gridy = 4; c.gridwidth = 2;
-        add(messageLabel, c);
+        add(card);
 
         loginButton.addActionListener(e -> doLogin());
-        passwordField.addActionListener(e -> doLogin()); // Enter key works too
+        passwordField.addActionListener(e -> doLogin());
+        usernameField.addActionListener(e -> passwordField.requestFocusInWindow());
+        signUpButton.addActionListener(e -> onSignUpClick.run());
     }
 
     public void setOnLoginSuccess(Consumer<String> callback) {
         this.onLoginSuccess = callback;
+    }
+
+    public void setOnSignUpClick(Runnable callback) {
+        this.onSignUpClick = callback;
     }
 
     private void doLogin() {
@@ -60,10 +73,9 @@ public class LoginPanel extends JPanel {
         }
 
         loginButton.setEnabled(false);
-        messageLabel.setForeground(Color.DARK_GRAY);
+        messageLabel.setForeground(Theme.MUTED);
         messageLabel.setText("Logging in...");
 
-        // Runs in the background so the window doesn't freeze.
         new SwingWorker<String, Void>() {
             @Override
             protected String doInBackground() throws Exception {
@@ -95,7 +107,7 @@ public class LoginPanel extends JPanel {
     }
 
     private void showError(String message) {
-        messageLabel.setForeground(Color.RED);
+        messageLabel.setForeground(Theme.ERROR);
         messageLabel.setText(message);
     }
 
@@ -106,8 +118,8 @@ public class LoginPanel extends JPanel {
             LoginPanel panel = new LoginPanel();
             panel.setOnLoginSuccess(user ->
                 JOptionPane.showMessageDialog(frame, "Welcome, " + user + "!"));
-            frame.add(panel);
-            frame.setSize(400, 280);
+            frame.setContentPane(panel);
+            frame.setSize(480, 560);
             frame.setLocationRelativeTo(null);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setVisible(true);
