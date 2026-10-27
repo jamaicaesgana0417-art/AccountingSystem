@@ -1,6 +1,10 @@
 import java.awt.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.sql.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.*;
@@ -10,12 +14,12 @@ public class BalanceSheetPanel extends JPanel {
     private static final Color LINE = new Color(190, 194, 199);
     private static final Color STRIPE = new Color(246, 248, 250);
 
-    private final DefaultTableModel assets = reportModel("Asset");
+    private final DefaultTableModel assets = reportModel("Assets");
     private final DefaultTableModel other = reportModel("Liabilities & Equity");
     private final JTable left = reportTable(assets);
     private final JTable right = reportTable(other);
     private final JLabel status = new JLabel("Open the report to load balances.");
-    private final JButton options = new JButton("Options \u25be");
+    private final JButton options = new JButton("Options ▾");
     private LocalDate reportDate = LocalDate.now();
     private LocalDate loadedDate;
 
@@ -42,10 +46,26 @@ public class BalanceSheetPanel extends JPanel {
         columns.setOpaque(false);
         columns.add(section("Assets", left));
         columns.add(section("Liabilities & Equity", right));
+
         status.setFont(new Font("Arial", Font.PLAIN, 12));
         add(header, BorderLayout.NORTH);
         add(columns, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
+    }
+
+    private static JPanel section(String title, JTable table) {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setOpaque(false);
+
+        JLabel label = new JLabel(title);
+        label.setFont(new Font("Arial", Font.BOLD, 13));
+        label.setForeground(new Color(35, 38, 43));
+        panel.add(label, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(LINE));
+        panel.add(scroll, BorderLayout.CENTER);
+        return panel;
     }
 
     private static DefaultTableModel reportModel(String name) {
@@ -89,23 +109,36 @@ public class BalanceSheetPanel extends JPanel {
                     boolean focused, int row, int column) {
                 super.getTableCellRendererComponent(
                     source, value, selected, focused, row, column);
-                String label = String.valueOf(source.getValueAt(row, 0));
+                String label = source.getValueAt(row, 0) == null
+                    ? "" : String.valueOf(source.getValueAt(row, 0));
                 boolean total = label.startsWith("Total ");
-                setFont(source.getFont().deriveFont(
-                    total ? Font.BOLD : Font.PLAIN));
-                setHorizontalAlignment(column == 1
-                            panel.add(scroll, BorderLayout.CENTER);
-        return panel;
+                setFont(source.getFont().deriveFont(total ? Font.BOLD : Font.PLAIN));
+                setHorizontalAlignment(column == 1 ? SwingConstants.RIGHT : SwingConstants.LEFT);
+                if (selected) {
+                    setForeground(source.getSelectionForeground());
+                } else {
+                    setForeground(Color.BLACK);
+                }
+                return this;
+            }
+        };
+
+        table.getColumnModel().getColumn(0).setCellRenderer(renderer);
+        table.getColumnModel().getColumn(1).setCellRenderer(renderer);
+        return table;
     }
 
     private void showOptions() {
         JPopupMenu menu = new JPopupMenu();
         JMenuItem refresh = new JMenuItem("Refresh");
         refresh.addActionListener(event -> refreshBalanceSheet());
+
         JMenuItem date = new JMenuItem("Change report date...");
         date.addActionListener(event -> changeDate());
+
         JMenuItem export = new JMenuItem("Export CSV...");
-        export.addActionListener(event -> export());
+        export.addActionListener(event -> exportCsv());
+
         menu.add(refresh);
         menu.add(date);
         menu.addSeparator();
@@ -116,14 +149,20 @@ public class BalanceSheetPanel extends JPanel {
     private void changeDate() {
         String input = JOptionPane.showInputDialog(
             this, "As-of date (YYYY-MM-DD):", reportDate.toString());
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
+
         try {
-            reportDate = AccountingService.date(input);
+            reportDate = LocalDate.parse(input.trim());
             refreshBalanceSheet();
-        } catch (Exception exception) {
-            JOptionPane.showMessageDialog(this,
+        } catch (DateTimeParseException exception) {
+            JOptionPane.showMessageDialog(
+                this,
                 "Enter a valid date using YYYY-MM-DD.",
-                "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                "Invalid Date",
+                JOptionPane.WARNING_MESSAGE
+            );
         }
     }
 
@@ -132,52 +171,57 @@ public class BalanceSheetPanel extends JPanel {
         loadedDate = null;
         assets.setRowCount(0);
         other.setRowCount(0);
-        try {
-            List<AccountingService.Account> accounts =
-                AccountingService.accounts(reportDate);
-            BigDecimal totalAssets = AccountingService.ZERO;
-            BigDecimal liabilities = AccountingService.ZERO;
-            BigDecimal equity = AccountingService.ZERO;
-            BigDecimal earnings = AccountingService.ZERO;
 
-            for (AccountingService.Account account : accounts) {
+        try {
+            List<AccountSummary> accounts = loadAccountSummaries(reportDate);
+            BigDecimal totalAssets = BigDecimal.ZERO;
+            BigDecimal liabilities = BigDecimal.ZERO;
+            BigDecimal equity = BigDecimal.ZERO;
+            BigDecimal earnings = BigDecimal.ZERO;
+
+            for (AccountSummary account : accounts) {
                 BigDecimal net = account.net();
                 switch (account.type) {
                     case "ASSET":
-                        if (net.signum() != 0)
+                        if (net.signum() != 0) {
                             assets.addRow(new Object[]{account.name, net});
+                        }
                         totalAssets = totalAssets.add(net);
                         break;
+
                     case "LIABILITY":
-                        if (net.signum() != 0)
+                        if (net.signum() != 0) {
                             other.addRow(new Object[]{account.name, net.negate()});
-                        liabilities = liabilities.subtract(net);
+                        }
+                        liabilities = liabilities.add(net.negate());
                         break;
+
                     case "EQUITY":
+                        if (net.signum() != 0) {
+                            other.addRow(new Object[]{account.name, net.negate()});
+                        }
+                        equity = equity.add(net.negate());
                         break;
+
                     case "REVENUE":
-                    case "EXPENSE":
-                        earnings = earnings.subtract(net);
+                        if (net.signum() != 0) {
+                            other.addRow(new Object[]{account.name, net.negate()});
+                        }
+                        earnings = earnings.add(net.negate());
                         break;
+
+                    case "EXPENSE":
+                        if (net.signum() != 0) {
+                            assets.addRow(new Object[]{account.name, net});
+                        }
+                        earnings = earnings.add(net);
+                        break;
+
                     default:
                         throw new IllegalArgumentException(
-                            "Unknown account type: " + account.type);
+                            "Unknown account type: " + account.type
+                        );
                 }
-            }
-
-            for (AccountingService.Account account : accounts) {
-                if (account.type.equals("EQUITY")) {
-                    BigDecimal amount = account.net().negate();
-                    if (amount.signum() != 0)
-                        other.addRow(new Object[]{account.name, amount});
-                    equity = equity.add(amount);
-                }
-            }
-            if (earnings.signum() != 0) {
-                other.addRow(new Object[]{
-                    earnings.signum() < 0 ? "Net Loss" : "Net Income",
-                    earnings
-                });
             }
 
             BigDecimal totalOther = liabilities.add(equity).add(earnings);
@@ -185,28 +229,42 @@ public class BalanceSheetPanel extends JPanel {
             assets.addRow(new Object[]{"Total Assets", totalAssets});
             other.addRow(new Object[]{"", null});
             other.addRow(new Object[]{"Total Liabilities & Equity", totalOther});
+
             loadedDate = reportDate;
             BigDecimal difference = totalAssets.subtract(totalOther);
             status.setForeground(difference.signum() == 0
-                ? new Color(40, 80, 55) : new Color(170, 30, 30));
+                ? new Color(40, 80, 55)
+                : new Color(170, 30, 30));
             status.setText("As of " + reportDate + "  |  "
-                + (difference.signum() == 0 ? "Balanced"
-                    : "Difference: PHP " + AccountingService.money(difference)));
+                + (difference.signum() == 0
+                    ? "Balanced"
+                    : "Difference: PHP " + money(difference)));
 
         } catch (Exception exception) {
             assets.setRowCount(0);
             other.setRowCount(0);
             status.setForeground(Color.RED);
             status.setText("Report unavailable. Use Options > Refresh to retry.");
-            UITheme.error(this, exception);
+            exception.printStackTrace();
+            JOptionPane.showMessageDialog(
+                this,
+                "Could not load the balance sheet.\n" + exception.getMessage(),
+                "Balance Sheet Error",
+                JOptionPane.ERROR_MESSAGE
+            );
         }
     }
 
-    private void export() {
+    private void exportCsv() {
         refreshBalanceSheet();
-        if (loadedDate == null) return;
-        DefaultTableModel output = UITheme.model(
-            "As of", "Section", "Account", "Amount (PHP)");
+        if (loadedDate == null) {
+            return;
+        }
+
+        DefaultTableModel output = new DefaultTableModel(
+            new String[]{"As of", "Section", "Account", "Amount (PHP)"},
+            0
+        );
         copyRows(output, assets, "Assets");
         copyRows(output, other, "Liabilities & Equity");
         CsvExporter.export(this, new JTable(output),
@@ -216,9 +274,90 @@ public class BalanceSheetPanel extends JPanel {
     private void copyRows(DefaultTableModel output,
                           DefaultTableModel source, String section) {
         for (int row = 0; row < source.getRowCount(); row++) {
-            String label = source.getValueAt(row, 0).toString();
-            if (label.isEmpty()) continue;
-            output.addRow(new Object[]{loadedDate.toString(), section,
-                label, source.getValueAt(row, 1)});
+            Object labelValue = source.getValueAt(row, 0);
+            if (labelValue == null) {
+                continue;
+            }
+
+            String label = labelValue.toString();
+            if (label.isEmpty()) {
+                continue;
+            }
+
+            output.addRow(new Object[]{
+                loadedDate.toString(),
+                section,
+                label,
+                source.getValueAt(row, 1)
+            });
         }
     }
+
+    private List<AccountSummary> loadAccountSummaries(LocalDate asOf) throws SQLException {
+        String sql = """
+            SELECT a.id,
+                   a.name,
+                   a.type,
+                   COALESCE(SUM(CASE WHEN jl.debit_centavos > 0 THEN jl.debit_centavos ELSE 0 END), 0) AS debit_total,
+                   COALESCE(SUM(CASE WHEN jl.credit_centavos > 0 THEN jl.credit_centavos ELSE 0 END), 0) AS credit_total
+            FROM accounts a
+            LEFT JOIN journal_lines jl
+              ON jl.account_id = a.id
+             AND jl.transaction_id IN (
+                   SELECT id
+                   FROM transactions
+                   WHERE transaction_date <= ?
+             )
+            WHERE a.active = 1
+              AND a.type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')
+            GROUP BY a.id, a.name, a.type
+            ORDER BY a.type, a.name
+            """;
+
+        List<AccountSummary> rows = new ArrayList<>();
+
+        try (
+            Connection connection = Database.connect();
+            PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setString(1, asOf.toString());
+
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    rows.add(new AccountSummary(
+                        result.getString("name"),
+                        result.getString("type"),
+                        result.getLong("debit_total"),
+                        result.getLong("credit_total")
+                    ));
+                }
+            }
+        }
+
+        return rows;
+    }
+
+    private static String money(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static final class AccountSummary {
+        private final String name;
+        private final String type;
+        private final long debitCentavos;
+        private final long creditCentavos;
+
+        private AccountSummary(String name, String type,
+                               long debitCentavos, long creditCentavos) {
+            this.name = name;
+            this.type = type;
+            this.debitCentavos = debitCentavos;
+            this.creditCentavos = creditCentavos;
+        }
+
+        private BigDecimal net() {
+            long difference = debitCentavos - creditCentavos;
+            return BigDecimal.valueOf(difference, 2);
+        }
+    }
+}
