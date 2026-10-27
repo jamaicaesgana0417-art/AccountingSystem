@@ -4,11 +4,10 @@ import javax.swing.*;
 
 public class SignUpPanel extends JPanel {
 
-    private static final Color SUCCESS = new Color(0x4CD964);
-
     private final JTextField usernameField = Theme.textField("Username");
     private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
     private final JPasswordField confirmField = Theme.passwordField("Confirm password");
+    private final JCheckBox showPassword = Ui.checkBox("Show password");
     private final JButton signUpButton = Theme.primaryButton("Create account");
     private final JButton backButton = Theme.secondaryButton("Back to login");
     private final JLabel messageLabel = new JLabel(" ");
@@ -35,6 +34,8 @@ public class SignUpPanel extends JPanel {
         messageLabel.setFont(Theme.BODY.deriveFont(13f));
         messageLabel.setForeground(Theme.ERROR);
 
+        Ui.bindShowPassword(showPassword, passwordField, confirmField);
+
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.weightx = 1;
@@ -44,10 +45,11 @@ public class SignUpPanel extends JPanel {
         c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
         c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
         c.gridy = 3; c.insets = new Insets(0, 0, 12, 0); card.add(passwordField, c);
-        c.gridy = 4; c.insets = new Insets(0, 0, 8, 0);  card.add(confirmField, c);
-        c.gridy = 5; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
-        c.gridy = 6; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
-        c.gridy = 7; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
+        c.gridy = 4; c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
+        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
+        c.gridy = 6; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
+        c.gridy = 7; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
+        c.gridy = 8; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
 
         add(card);
 
@@ -61,13 +63,8 @@ public class SignUpPanel extends JPanel {
         });
     }
 
-    public void setOnSignUpSuccess(Runnable callback) {
-        this.onSignUpSuccess = callback;
-    }
-
-    public void setOnBackToLogin(Runnable callback) {
-        this.onBackToLogin = callback;
-    }
+    public void setOnSignUpSuccess(Runnable callback) { this.onSignUpSuccess = callback; }
+    public void setOnBackToLogin(Runnable callback) { this.onBackToLogin = callback; }
 
     private void clearAll() {
         usernameField.setText("");
@@ -104,23 +101,41 @@ public class SignUpPanel extends JPanel {
         messageLabel.setForeground(Theme.MUTED);
         messageLabel.setText("Creating account...");
 
-        new SwingWorker<Void, Void>() {
+        new SwingWorker<String, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected String doInBackground() throws Exception {
                 try {
                     AuthService.register(username, password);
                 } finally {
                     Arrays.fill(password, ' ');
                 }
-                return null;
+                // Account exists now. Make its recovery code.
+                try {
+                    return RecoveryService.issueCode(username);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
             }
 
             @Override
             protected void done() {
                 signUpButton.setEnabled(true);
                 try {
-                    get();
+                    String code = get();
                     clearAll();
+                    if (code != null) {
+                        Ui.showRecoveryCode(SignUpPanel.this, code);
+                    } else {
+                        JOptionPane.showMessageDialog(
+                            SignUpPanel.this,
+                            "Account created, but the recovery code could not "
+                            + "be set up.\nAsk your leader to check the database "
+                            + "permissions.",
+                            "Recovery code",
+                            JOptionPane.WARNING_MESSAGE
+                        );
+                    }
                     onSignUpSuccess.run();
                 } catch (Exception ex) {
                     Throwable cause = (ex.getCause() != null) ? ex.getCause() : ex;

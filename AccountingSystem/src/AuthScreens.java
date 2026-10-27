@@ -12,23 +12,30 @@ public class AuthScreens {
 
             LoginPanel login = new LoginPanel();
             SignUpPanel signUp = new SignUpPanel();
+            ForgotPasswordPanel forgot = new ForgotPasswordPanel();
 
             root.add(login, "login");
             root.add(signUp, "signup");
+            root.add(forgot, "forgot");
 
             login.setOnSignUpClick(() -> cards.show(root, "signup"));
+            login.setOnForgotClick(() -> cards.show(root, "forgot"));
             login.setOnLoginSuccess(user ->
                 JOptionPane.showMessageDialog(frame, "Welcome, " + user + "!"));
 
             signUp.setOnBackToLogin(() -> cards.show(root, "login"));
-            signUp.setOnSignUpSuccess(() -> {
+            signUp.setOnSignUpSuccess(() -> cards.show(root, "login"));
+
+            forgot.setOnBackToLogin(() -> cards.show(root, "login"));
+            forgot.setOnResetDone(() -> {
                 JOptionPane.showMessageDialog(frame,
-                    "Account created! You can log in now.");
+                    "Password changed. You can log in now.");
+                login.clearSensitive();
                 cards.show(root, "login");
             });
 
             frame.setContentPane(root);
-            frame.setSize(500, 660);
+            frame.setSize(500, 740);
             frame.setLocationRelativeTo(null);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setVisible(true);
