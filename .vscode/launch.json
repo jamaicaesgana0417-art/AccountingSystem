@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java",
+      "name": "App",
+      "request": "launch",
+      "mainClass": "App",
+      "projectName": "AccountingSystem_2ed07761"
+    },
+    {
       "name": "Run Accounting App",
       "type": "java",
       "request": "launch",

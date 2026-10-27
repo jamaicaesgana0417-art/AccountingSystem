@@ -4,8 +4,6 @@ import javax.swing.*;
 
 public class SignUpPanel extends JPanel {
 
-    private static final Color SUCCESS = new Color(0x4CD964);
-
     private final JTextField usernameField = Theme.textField("Username");
     private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
     private final JPasswordField confirmField = Theme.passwordField("Confirm password");
@@ -15,6 +13,7 @@ public class SignUpPanel extends JPanel {
 
     private Runnable onSignUpSuccess = () -> {};
     private Runnable onBackToLogin = () -> {};
+    private boolean signUpInProgress;
 
     public SignUpPanel() {
         setLayout(new GridBagLayout());
@@ -77,12 +76,16 @@ public class SignUpPanel extends JPanel {
     }
 
     private void doSignUp() {
+        if (signUpInProgress) {
+            return;
+        }
+
         String username = usernameField.getText().trim();
         char[] password = passwordField.getPassword();
         char[] confirm = confirmField.getPassword();
 
         String problem = null;
-        if (username.isEmpty() || password.length == 0) {
+        if (username.isEmpty() || password.length == 0 || confirm.length == 0) {
             problem = "Please fill in all the fields.";
         } else if (!username.matches("[A-Za-z0-9_]{3,30}")) {
             problem = "Username: 3–30 letters, numbers, or _ only.";
@@ -92,15 +95,15 @@ public class SignUpPanel extends JPanel {
             problem = "Passwords do not match.";
         }
 
-        Arrays.fill(confirm, ' ');
+        Arrays.fill(confirm, '\0');
 
         if (problem != null) {
-            Arrays.fill(password, ' ');
+            Arrays.fill(password, '\0');
             showError(problem);
             return;
         }
 
-        signUpButton.setEnabled(false);
+        setBusy(true);
         messageLabel.setForeground(Theme.MUTED);
         messageLabel.setText("Creating account...");
 
@@ -110,14 +113,13 @@ public class SignUpPanel extends JPanel {
                 try {
                     AuthService.register(username, password);
                 } finally {
-                    Arrays.fill(password, ' ');
+                    Arrays.fill(password, '\0');
                 }
                 return null;
             }
 
             @Override
             protected void done() {
-                signUpButton.setEnabled(true);
                 try {
                     get();
                     clearAll();
@@ -130,9 +132,20 @@ public class SignUpPanel extends JPanel {
                         showError("Could not create account. Check your connection.");
                         ex.printStackTrace();
                     }
+                } finally {
+                    setBusy(false);
                 }
             }
         }.execute();
+    }
+
+    private void setBusy(boolean busy) {
+        signUpInProgress = busy;
+        usernameField.setEnabled(!busy);
+        passwordField.setEnabled(!busy);
+        confirmField.setEnabled(!busy);
+        signUpButton.setEnabled(!busy);
+        backButton.setEnabled(!busy);
     }
 
     private void showError(String message) {
