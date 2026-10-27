@@ -97,15 +97,16 @@ public class LoginFrame extends JFrame {
             protected void done() {
                 try {
                     String authenticatedUser = get();
-                    passwordField.setText("");
+passwordField.setText("");
 
-                    if (authenticatedUser == null) {
-                        showMessage("Incorrect username or password.");
-                        return;
-                    }
+if (authenticatedUser == null) {
+    showMessage("Incorrect username or password.");
+    return;
+}
 
-                    App.openAccountingWindow(authenticatedUser);
-                    dispose();
+Session.login(authenticatedUser);
+App.openAccountingWindow(authenticatedUser);
+dispose();
 
                 } catch (Exception exception) {
                     showFailure(exception);

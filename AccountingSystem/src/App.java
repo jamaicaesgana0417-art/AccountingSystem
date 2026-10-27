@@ -149,10 +149,10 @@ public class App {
             );
 
             if (answer == JOptionPane.YES_OPTION) {
-                // Dispose accounting screens and open a fresh login.
-                new LoginFrame().setVisible(true);
-                window.dispose();
-            }
+    Session.logout();
+    new LoginFrame().setVisible(true);
+    window.dispose();
+}
         });
 
         userArea.add(userLabel);
