@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Accounting App",
+      "type": "java",
+      "request": "launch",
+      "mainClass": "App",
+      "projectName": "AccountingSystem",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "classPaths": [
+        "${workspaceFolder}/bin"
+      ]
+    }
+  ]
+}
