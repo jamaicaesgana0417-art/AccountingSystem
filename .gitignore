@@ -1,7 +1,10 @@
-# Compiled class file
-*.class
 
-# Log file
+# Compiled class files
+*.class
+!bin/
+!bin/**/*.class
+
+# Log files
 *.log
 
 # BlueJ files
@@ -10,7 +13,7 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-# Package Files #
+# Package files
 *.jar
 *.war
 *.nar
@@ -19,10 +22,10 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
-
 # Keep the PostgreSQL JDBC driver required to run the app
 !lib/
 !lib/postgresql-42.7.14.jar
+
+# Virtual machine crash logs
+hs_err_pid*
+replay_pid*
