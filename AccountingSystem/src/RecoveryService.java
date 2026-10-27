@@ -60,10 +60,9 @@ public class RecoveryService {
         String key = username.trim().toLowerCase();
         checkLocked(key);
 
-        if (newPassword.length < 8) {
-            throw new IllegalArgumentException(
-                "New password needs at least 8 characters."
-            );
+                String passwordProblem = PasswordPolicy.validate(newPassword, username);
+        if (passwordProblem != null) {
+            throw new IllegalArgumentException(passwordProblem);
         }
 
         try (Connection connection = Database.connect()) {

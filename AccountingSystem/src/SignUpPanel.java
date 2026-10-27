@@ -6,6 +6,7 @@ public class SignUpPanel extends JPanel {
 
     private final JTextField usernameField = Theme.textField("Username");
     private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
+    private final PasswordMeter meter = new PasswordMeter();
     private final JPasswordField confirmField = Theme.passwordField("Confirm password");
     private final JCheckBox showPassword = Ui.checkBox("Show password");
     private final JButton signUpButton = Theme.primaryButton("Create account");
@@ -35,6 +36,7 @@ public class SignUpPanel extends JPanel {
         messageLabel.setForeground(Theme.ERROR);
 
         Ui.bindShowPassword(showPassword, passwordField, confirmField);
+        meter.attach(passwordField, usernameField);
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
@@ -44,12 +46,13 @@ public class SignUpPanel extends JPanel {
         c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
         c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
         c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
-        c.gridy = 3; c.insets = new Insets(0, 0, 12, 0); card.add(passwordField, c);
-        c.gridy = 4; c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
-        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
-        c.gridy = 6; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
-        c.gridy = 7; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
-        c.gridy = 8; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
+        c.gridy = 3; c.insets = new Insets(0, 0, 8, 0);  card.add(passwordField, c);
+        c.gridy = 4; c.insets = new Insets(0, 2, 8, 0);  card.add(meter, c);
+        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
+        c.gridy = 6; c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
+        c.gridy = 7; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
+        c.gridy = 8; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
+        c.gridy = 9; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
 
         add(card);
 
@@ -83,10 +86,11 @@ public class SignUpPanel extends JPanel {
             problem = "Please fill in all the fields.";
         } else if (!username.matches("[A-Za-z0-9_]{3,30}")) {
             problem = "Username: 3–30 letters, numbers, or _ only.";
-        } else if (password.length < 8) {
-            problem = "Password needs at least 8 characters.";
-        } else if (!Arrays.equals(password, confirm)) {
-            problem = "Passwords do not match.";
+        } else {
+            problem = PasswordPolicy.validate(password, username);
+            if (problem == null && !Arrays.equals(password, confirm)) {
+                problem = "Passwords do not match.";
+            }
         }
 
         Arrays.fill(confirm, ' ');
@@ -109,7 +113,6 @@ public class SignUpPanel extends JPanel {
                 } finally {
                     Arrays.fill(password, ' ');
                 }
-                // Account exists now. Make its recovery code.
                 try {
                     return RecoveryService.issueCode(username);
                 } catch (Exception e) {

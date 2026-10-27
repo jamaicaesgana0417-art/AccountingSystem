@@ -7,6 +7,7 @@ public class ForgotPasswordPanel extends JPanel {
     private final JTextField usernameField = Theme.textField("Username");
     private final JTextField codeField = Theme.textField("Recovery code (XXXX-XXXX-XXXX)");
     private final JPasswordField newPassField = Theme.passwordField("New password (8+ characters)");
+    private final PasswordMeter meter = new PasswordMeter();
     private final JPasswordField confirmField = Theme.passwordField("Confirm new password");
     private final JCheckBox showPassword = Ui.checkBox("Show password");
     private final JButton resetButton = Theme.primaryButton("Reset password");
@@ -39,22 +40,24 @@ public class ForgotPasswordPanel extends JPanel {
         messageLabel.setForeground(Theme.ERROR);
 
         Ui.bindShowPassword(showPassword, newPassField, confirmField);
+        meter.attach(newPassField, usernameField);
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
-        c.gridy = 1; c.insets = new Insets(0, 0, 20, 0); card.add(subtitle, c);
-        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
-        c.gridy = 3; c.insets = new Insets(0, 0, 12, 0); card.add(codeField, c);
-        c.gridy = 4; c.insets = new Insets(0, 0, 12, 0); card.add(newPassField, c);
-        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
-        c.gridy = 6; c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
-        c.gridy = 7; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
-        c.gridy = 8; c.insets = new Insets(0, 0, 18, 0); card.add(resetButton, c);
-        c.gridy = 9; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
+        c.gridy = 0;  c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
+        c.gridy = 1;  c.insets = new Insets(0, 0, 20, 0); card.add(subtitle, c);
+        c.gridy = 2;  c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
+        c.gridy = 3;  c.insets = new Insets(0, 0, 12, 0); card.add(codeField, c);
+        c.gridy = 4;  c.insets = new Insets(0, 0, 8, 0);  card.add(newPassField, c);
+        c.gridy = 5;  c.insets = new Insets(0, 2, 8, 0);  card.add(meter, c);
+        c.gridy = 6;  c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
+        c.gridy = 7;  c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
+        c.gridy = 8;  c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
+        c.gridy = 9;  c.insets = new Insets(0, 0, 18, 0); card.add(resetButton, c);
+        c.gridy = 10; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
 
         add(card);
 
@@ -89,10 +92,11 @@ public class ForgotPasswordPanel extends JPanel {
         String problem = null;
         if (username.isEmpty() || code.isEmpty() || password.length == 0) {
             problem = "Please fill in all the fields.";
-        } else if (password.length < 8) {
-            problem = "New password needs at least 8 characters.";
-        } else if (!Arrays.equals(password, confirm)) {
-            problem = "Passwords do not match.";
+        } else {
+            problem = PasswordPolicy.validate(password, username);
+            if (problem == null && !Arrays.equals(password, confirm)) {
+                problem = "Passwords do not match.";
+            }
         }
 
         Arrays.fill(confirm, ' ');
