@@ -104,6 +104,7 @@ public class LoginFrame extends JFrame {
                         return;
                     }
 
+                    Session.login(authenticatedUser);
                     App.openAccountingWindow(authenticatedUser);
                     dispose();
 

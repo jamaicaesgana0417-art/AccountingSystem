@@ -149,7 +149,7 @@ public class App {
             );
 
             if (answer == JOptionPane.YES_OPTION) {
-                // Dispose accounting screens and open a fresh login.
+                Session.logout();
                 new LoginFrame().setVisible(true);
                 window.dispose();
             }
