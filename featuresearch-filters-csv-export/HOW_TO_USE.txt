@@ -1,0 +1,27 @@
+PROJECT 10 - SEARCH, FILTERS, AND CSV EXPORT  (Maglasang)
+
+WHAT IS IN THIS FOLDER
+  src/    6 files: 1 NEW (FilterSupport.java) + 5 CHANGED
+            NEW      FilterSupport.java      shared search / date / account / type filters
+            CHANGED  CsvExporter.java        CSV export (headers + escaping)
+            CHANGED  TransactionsPanel.java  search, dates, account, type, export
+            CHANGED  JournalPanel.java       search, dates, account, type, export
+            CHANGED  LedgerPanel.java        type filter, search, dates, export
+            CHANGED  AccountsPanel.java      search, type filter, NEW Export CSV button
+  tests/  FilterExportTests.java (112 tests), run_tests.bat / run_tests.sh,
+          MANUAL_CHECKLIST.md (checks to run on Supabase), sql_logic_check/
+  TEST_REPORT.md   the task 10.5 report
+
+HOW TO ADD TO YOUR PROJECT
+  1. Copy the 6 files in src\ into your project's src\ folder (replace when asked).
+  2. Copy the tests\ folder into the project root (next to src, lib, bin).
+  3. In VS Code, let Java rebuild. If you see "class not found", run
+     "Java: Clean Java Language Server Workspace".
+
+HOW TO RUN THE TESTS (from the project root)
+  Windows:    tests\run_tests.bat
+  Mac/Linux:  sh tests/run_tests.sh
+  Expected:   Passed: 112   Failed: 0
+
+BEFORE SUBMITTING
+  Do tests\MANUAL_CHECKLIST.md on your Supabase database and tick the boxes.
