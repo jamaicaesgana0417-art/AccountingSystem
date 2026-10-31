@@ -69,7 +69,7 @@ public class TransactionsPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("Transactions");
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        heading.setFont(new Font("Inter", Font.BOLD, 24)); //ge change nako font
         heading.setForeground(new Color(15, 70, 125));
 
         JPanel filterFields = new JPanel(new GridLayout(0, 2, 12, 8));
@@ -111,7 +111,7 @@ public class TransactionsPanel extends JPanel {
 
         table.setRowHeight(28);
         table.setFillsViewportHeight(true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS); //ge change nako para mo fit siya sa content sa table
         table.getTableHeader().setReorderingAllowed(false);
 
         TableRowSorter<DefaultTableModel> sorter =
@@ -121,7 +121,7 @@ public class TransactionsPanel extends JPanel {
         sorter.setSortsOnUpdates(true);
         table.setRowSorter(sorter);
 
-        int[] widths = {85, 110, 250, 180, 180, 130};
+        int[] widths = {105, 155, 291, 205, 205, 160}; //ge change nako size sa width niya
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()

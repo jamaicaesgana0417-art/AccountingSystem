@@ -65,7 +65,7 @@ public class LedgerPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("General Ledger");
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        heading.setFont(new Font("Inter", Font.BOLD, 24)); //I change the font
         heading.setForeground(new Color(15, 70, 125));
 
         JPanel fields = new JPanel(new GridLayout(0, 2, 10, 8));
@@ -104,7 +104,7 @@ public class LedgerPanel extends JPanel {
 
         table.setRowHeight(28);
         table.setFillsViewportHeight(true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS); //ge change nako para mo fit siya sa content sa table
         table.getTableHeader().setReorderingAllowed(false);
 
         // Keep chronological order so running balances remain meaningful.

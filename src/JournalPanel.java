@@ -55,7 +55,7 @@ public class JournalPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("General Journal");
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        heading.setFont(new Font("Inter", Font.BOLD, 24)); //ge change nako font
         heading.setForeground(new Color(15, 70, 125));
 
         JPanel fields = new JPanel(new GridLayout(0, 2, 10, 8));
@@ -94,11 +94,11 @@ public class JournalPanel extends JPanel {
 
         table.setRowHeight(28);
         table.setFillsViewportHeight(true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS); //ge change nako para mo fit siya sa content sa table
         table.getTableHeader().setReorderingAllowed(false);
 
         // Keep chronological order and matching journal lines together.
-        int[] widths = {85, 110, 230, 200, 130, 130};
+        int[] widths = {100, 125, 245, 215, 145, 145};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()

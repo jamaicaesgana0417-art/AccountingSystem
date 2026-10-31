@@ -84,7 +84,7 @@ public class BalanceSheetPanel extends JPanel {
 
     private static JTable reportTable(DefaultTableModel model) {
         JTable table = new JTable(model);
-        table.setFont(new Font("Arial", Font.PLAIN, 13));
+        table.setFont(new Font("Inter", Font.PLAIN, 13)); //I change the font
         table.setRowHeight(28);
         table.setFillsViewportHeight(true);
         table.setShowVerticalLines(true);
@@ -95,7 +95,7 @@ public class BalanceSheetPanel extends JPanel {
         table.setSelectionBackground(new Color(220, 232, 247));
         table.setSelectionForeground(Color.BLACK);
         table.getTableHeader().setReorderingAllowed(false);
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 13)); //I change the font
         table.getTableHeader().setBackground(new Color(222, 225, 230));
         table.getTableHeader().setForeground(Color.DARK_GRAY);
         table.getTableHeader().setPreferredSize(new Dimension(0, 29));
