@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -9,10 +10,8 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.table.*;
 
-/** Two-column balance sheet populated from posted journal entries. */
 public class BalanceSheetPanel extends JPanel {
     private static final Color LINE = new Color(190, 194, 199);
-    private static final Color STRIPE = new Color(246, 248, 250);
 
     private final DefaultTableModel assets = reportModel("Assets");
     private final DefaultTableModel other = reportModel("Liabilities & Equity");
@@ -31,6 +30,7 @@ public class BalanceSheetPanel extends JPanel {
         JLabel heading = new JLabel("Balance Sheet");
         heading.setFont(new Font("Arial", Font.BOLD, 18));
         heading.setForeground(new Color(35, 38, 43));
+
         options.setFocusPainted(false);
         options.setFont(new Font("Arial", Font.PLAIN, 12));
         options.setBackground(new Color(37, 91, 184));
@@ -48,6 +48,7 @@ public class BalanceSheetPanel extends JPanel {
         columns.add(section("Liabilities & Equity", right));
 
         status.setFont(new Font("Arial", Font.PLAIN, 12));
+
         add(header, BorderLayout.NORTH);
         add(columns, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
@@ -65,6 +66,7 @@ public class BalanceSheetPanel extends JPanel {
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createLineBorder(LINE));
         panel.add(scroll, BorderLayout.CENTER);
+
         return panel;
     }
 
@@ -109,27 +111,32 @@ public class BalanceSheetPanel extends JPanel {
                     boolean focused, int row, int column) {
                 super.getTableCellRendererComponent(
                     source, value, selected, focused, row, column);
+
                 String label = source.getValueAt(row, 0) == null
                     ? "" : String.valueOf(source.getValueAt(row, 0));
-                boolean total = label.startsWith("Total ");
-                setFont(source.getFont().deriveFont(total ? Font.BOLD : Font.PLAIN));
-                setHorizontalAlignment(column == 1 ? SwingConstants.RIGHT : SwingConstants.LEFT);
-                if (selected) {
-                    setForeground(source.getSelectionForeground());
-                } else {
-                    setForeground(Color.BLACK);
-                }
+
+                setFont(source.getFont().deriveFont(
+                    label.startsWith("Total ") ? Font.BOLD : Font.PLAIN));
+
+                setHorizontalAlignment(column == 1
+                    ? SwingConstants.RIGHT : SwingConstants.LEFT);
+
+                setForeground(selected
+                    ? source.getSelectionForeground() : Color.BLACK);
+
                 return this;
             }
         };
 
         table.getColumnModel().getColumn(0).setCellRenderer(renderer);
         table.getColumnModel().getColumn(1).setCellRenderer(renderer);
+
         return table;
     }
 
     private void showOptions() {
         JPopupMenu menu = new JPopupMenu();
+
         JMenuItem refresh = new JMenuItem("Refresh");
         refresh.addActionListener(event -> refreshBalanceSheet());
 
@@ -149,6 +156,7 @@ public class BalanceSheetPanel extends JPanel {
     private void changeDate() {
         String input = JOptionPane.showInputDialog(
             this, "As-of date (YYYY-MM-DD):", reportDate.toString());
+
         if (input == null) {
             return;
         }
@@ -166,7 +174,6 @@ public class BalanceSheetPanel extends JPanel {
         }
     }
 
-    // App.java calls this when the Balance Sheet screen is opened.
     public void refreshBalanceSheet() {
         loadedDate = null;
         assets.setRowCount(0);
@@ -174,6 +181,7 @@ public class BalanceSheetPanel extends JPanel {
 
         try {
             List<AccountSummary> accounts = loadAccountSummaries(reportDate);
+
             BigDecimal totalAssets = BigDecimal.ZERO;
             BigDecimal liabilities = BigDecimal.ZERO;
             BigDecimal equity = BigDecimal.ZERO;
@@ -181,6 +189,7 @@ public class BalanceSheetPanel extends JPanel {
 
             for (AccountSummary account : accounts) {
                 BigDecimal net = account.net();
+
                 switch (account.type) {
                     case "ASSET":
                         if (net.signum() != 0) {
@@ -190,30 +199,34 @@ public class BalanceSheetPanel extends JPanel {
                         break;
 
                     case "LIABILITY":
-                        if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
+                        BigDecimal liabilityBalance = net.negate();
+
+                        if (liabilityBalance.signum() != 0) {
+                            other.addRow(new Object[]{
+                                account.name, liabilityBalance
+                            });
                         }
-                        liabilities = liabilities.add(net.negate());
+
+                        liabilities = liabilities.add(liabilityBalance);
                         break;
 
                     case "EQUITY":
-                        if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
+                        BigDecimal equityBalance = net.negate();
+
+                        if (equityBalance.signum() != 0) {
+                            other.addRow(new Object[]{
+                                account.name, equityBalance
+                            });
                         }
-                        equity = equity.add(net.negate());
+
+                        equity = equity.add(equityBalance);
                         break;
 
                     case "REVENUE":
-                        if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
-                        }
                         earnings = earnings.add(net.negate());
                         break;
 
                     case "EXPENSE":
-                        if (net.signum() != 0) {
-                            assets.addRow(new Object[]{account.name, net});
-                        }
                         earnings = earnings.add(net);
                         break;
 
@@ -225,16 +238,22 @@ public class BalanceSheetPanel extends JPanel {
             }
 
             BigDecimal totalOther = liabilities.add(equity).add(earnings);
+
             assets.addRow(new Object[]{"", null});
             assets.addRow(new Object[]{"Total Assets", totalAssets});
+
             other.addRow(new Object[]{"", null});
+            other.addRow(new Object[]{"Current Earnings", earnings});
             other.addRow(new Object[]{"Total Liabilities & Equity", totalOther});
 
             loadedDate = reportDate;
+
             BigDecimal difference = totalAssets.subtract(totalOther);
+
             status.setForeground(difference.signum() == 0
                 ? new Color(40, 80, 55)
                 : new Color(170, 30, 30));
+
             status.setText("As of " + reportDate + "  |  "
                 + (difference.signum() == 0
                     ? "Balanced"
@@ -245,7 +264,9 @@ public class BalanceSheetPanel extends JPanel {
             other.setRowCount(0);
             status.setForeground(Color.RED);
             status.setText("Report unavailable. Use Options > Refresh to retry.");
+
             exception.printStackTrace();
+
             JOptionPane.showMessageDialog(
                 this,
                 "Could not load the balance sheet.\n" + exception.getMessage(),
@@ -257,6 +278,7 @@ public class BalanceSheetPanel extends JPanel {
 
     private void exportCsv() {
         refreshBalanceSheet();
+
         if (loadedDate == null) {
             return;
         }
@@ -265,8 +287,10 @@ public class BalanceSheetPanel extends JPanel {
             new String[]{"As of", "Section", "Account", "Amount (PHP)"},
             0
         );
+
         copyRows(output, assets, "Assets");
         copyRows(output, other, "Liabilities & Equity");
+
         CsvExporter.export(this, new JTable(output),
             "balance_sheet_" + loadedDate + ".csv");
     }
@@ -275,11 +299,13 @@ public class BalanceSheetPanel extends JPanel {
                           DefaultTableModel source, String section) {
         for (int row = 0; row < source.getRowCount(); row++) {
             Object labelValue = source.getValueAt(row, 0);
+
             if (labelValue == null) {
                 continue;
             }
 
             String label = labelValue.toString();
+
             if (label.isEmpty()) {
                 continue;
             }
@@ -293,13 +319,15 @@ public class BalanceSheetPanel extends JPanel {
         }
     }
 
-    private List<AccountSummary> loadAccountSummaries(LocalDate asOf) throws SQLException {
+    private List<AccountSummary> loadAccountSummaries(
+            LocalDate asOf) throws SQLException {
+
         String sql = """
             SELECT a.id,
                    a.name,
                    a.type,
-                   COALESCE(SUM(CASE WHEN jl.debit_centavos > 0 THEN jl.debit_centavos ELSE 0 END), 0) AS debit_total,
-                   COALESCE(SUM(CASE WHEN jl.credit_centavos > 0 THEN jl.credit_centavos ELSE 0 END), 0) AS credit_total
+                   COALESCE(SUM(jl.debit_centavos), 0) AS debit_total,
+                   COALESCE(SUM(jl.credit_centavos), 0) AS credit_total
             FROM accounts a
             LEFT JOIN journal_lines jl
               ON jl.account_id = a.id
@@ -308,7 +336,7 @@ public class BalanceSheetPanel extends JPanel {
                    FROM transactions
                    WHERE transaction_date <= ?
              )
-            WHERE a.active = TRUE
+            WHERE a.active = 1
               AND a.type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')
             GROUP BY a.id, a.name, a.type
             ORDER BY a.type, a.name
