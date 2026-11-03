@@ -102,12 +102,13 @@ public class NewTransactionPanel extends JPanel {
     public void refreshAccounts() {
         List<AccountOption> accounts = new ArrayList<>();
 
-        String sql = """
-            SELECT id, code, name
-            FROM accounts
-            WHERE active = 1
-            ORDER BY code
-            """;
+   String sql = """
+    SELECT id, code, name, type
+    FROM accounts
+    WHERE active = 1
+      AND id NOT IN (14, 22, 9, 1, 11, 13, 1241, 4, 6, 3, 8, 2, 7)
+    ORDER BY code
+    """;
 
         try (
             Connection connection = Database.connect();
@@ -124,6 +125,7 @@ public class NewTransactionPanel extends JPanel {
             }
         } catch (SQLException exception) {
             postButton.setEnabled(false);
+            exception.printStackTrace();
             showError("Could not load accounts.", exception);
             return;
         }
@@ -368,20 +370,21 @@ public class NewTransactionPanel extends JPanel {
         );
     }
 
-    private static class AccountOption {
-        private final int id;
-        private final String code;
-        private final String name;
+ private static class AccountOption {
+    private final int id;
+    private final String code;
+    private final String name;
+    private final String type;
 
-        AccountOption(int id, String code, String name) {
-            this.id = id;
-            this.code = code;
-            this.name = name;
-        }
+    AccountOption(int id, String code, String name, String type) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.type = type;
+    }
 
-        @Override
-        public String toString() {
-            return code + " - " + name;
-        }
+    @Override
+    public String toString() {
+        return name + " [" + type + "]";
     }
 }
