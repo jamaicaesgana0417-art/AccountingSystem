@@ -308,7 +308,7 @@ public class BalanceSheetPanel extends JPanel {
                    FROM transactions
                    WHERE transaction_date <= ?
              )
-            WHERE a.active = TRUE
+            WHERE a.active = 1
               AND a.type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')
             GROUP BY a.id, a.name, a.type
             ORDER BY a.type, a.name

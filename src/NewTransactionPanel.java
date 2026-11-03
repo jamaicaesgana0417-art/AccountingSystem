@@ -1,5 +1,4 @@
 
-import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,6 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.*;
 
 public class NewTransactionPanel extends JPanel {
 
@@ -105,7 +105,7 @@ public class NewTransactionPanel extends JPanel {
         String sql = """
             SELECT id, code, name
             FROM accounts
-            WHERE active = TRUE
+            WHERE active = 1
             ORDER BY code
             """;
 
@@ -248,7 +248,7 @@ public class NewTransactionPanel extends JPanel {
                 String checkSql = """
                     SELECT COUNT(*)
                     FROM accounts
-                    WHERE active = TRUE AND id IN (?, ?)
+                    WHERE active = 1 AND id IN (?, ?)
                     """;
 
                 try (
