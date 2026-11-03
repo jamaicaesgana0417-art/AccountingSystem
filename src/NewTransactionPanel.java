@@ -36,7 +36,7 @@ public class NewTransactionPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("New Transaction");
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        heading.setFont(new Font("Inter", Font.BOLD, 24)); //ako ge change ang font
         heading.setForeground(new Color(15, 70, 125));
 
         descriptionField.setLineWrap(true);

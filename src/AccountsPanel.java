@@ -37,7 +37,7 @@ public class AccountsPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("Chart of Accounts");
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        heading.setFont(new Font("Inter", Font.BOLD, 24)); //ge change nako font
         heading.setForeground(new Color(15, 70, 125));
 
         // Account input form
