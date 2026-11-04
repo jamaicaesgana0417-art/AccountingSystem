@@ -100,46 +100,102 @@ public class NewTransactionPanel extends JPanel {
 
     // Called whenever the user opens this screen.
     public void refreshAccounts() {
-        List<AccountOption> accounts = new ArrayList<>();
+    List<AccountOption> accounts = new ArrayList<>();
 
-        String sql = """
-            SELECT id, code, name
-            FROM accounts
-            WHERE active = 1
-            ORDER BY code
-            """;
+    // Only these account names will appear in the two dropdowns.
+    List<String> allowedNames = List.of(
+        "Cash",
+        "Accounts Receivable",
+        "Supplies",
+        "Prepaid Insurance",
+        "Prepaid Rent",
+        "Equipment",
+        "Furniture",
+        "Vehicles",
+        "Accounts Payable",
+        "Unearned Revenue",
+        "Notes Payable",
+        "Salaries Payable",
+        "Owner's Capital",
+        "Owner's Drawings",
+        "Service Revenue",
+        "Expenses",
+        "Advertising Expense",
+        "Utilities Expense",
+        "Salaries Expense",
+        "Maintenance Expense",
+        "Professional Fees Expense",
+        "Repairs Expense",
+        "Rent Expense",
+        "Interest Expense",
+        "Insurance Expense",
+        "Supplies Expense",
+        "Depreciation Expense"
+    );
 
-        try (
-            Connection connection = Database.connect();
-            PreparedStatement statement =
-                connection.prepareStatement(sql);
-            ResultSet result = statement.executeQuery()
-        ) {
-            while (result.next()) {
-                accounts.add(new AccountOption(
-                    result.getInt("id"),
-                    result.getString("code"),
-                    result.getString("name")
-                ));
-            }
-        } catch (SQLException exception) {
-            postButton.setEnabled(false);
-            showError("Could not load accounts.", exception);
-            return;
-        }
+    String username = Session.getCurrentUser();
 
+    if (username == null) {
         debitBox.removeAllItems();
         creditBox.removeAllItems();
+        postButton.setEnabled(false);
+        showWarning("Please log in before creating a transaction.");
+        return;
+    }
 
-        for (AccountOption account : accounts) {
-            debitBox.addItem(account);
-            creditBox.addItem(account);
+    String sql = """
+        SELECT id, code, name, type
+        FROM accounts
+        WHERE active = 1
+          AND owner_username = ?
+        ORDER BY code
+        """;
+
+    try (
+        Connection connection = Database.connect();
+        PreparedStatement statement =
+            connection.prepareStatement(sql)
+    ) {
+        statement.setString(1, username);
+
+        try (ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                String name = result.getString("name");
+
+                if (allowedNames.contains(name)) {
+                    String type = result.getString("type");
+
+                    accounts.add(new AccountOption(
+                        result.getInt("id"),
+                        result.getString("code"),
+                        name + " [" + type + "]"
+                    ));
+                }
+            }
         }
 
-        debitBox.setSelectedIndex(-1);
-        creditBox.setSelectedIndex(-1);
-        postButton.setEnabled(accounts.size() >= 2);
+    } catch (SQLException exception) {
+        debitBox.removeAllItems();
+        creditBox.removeAllItems();
+        postButton.setEnabled(false);
+        showError("Could not load accounts.", exception);
+        return;
     }
+
+    debitBox.removeAllItems();
+    creditBox.removeAllItems();
+
+    for (AccountOption account : accounts) {
+        debitBox.addItem(account);
+        creditBox.addItem(account);
+    }
+
+    // Start with no selection in either dropdown.
+    debitBox.setSelectedIndex(-1);
+    creditBox.setSelectedIndex(-1);
+
+    postButton.setEnabled(accounts.size() >= 2);
+}
 
     private void postTransaction() {
         LocalDate date;
@@ -249,6 +305,7 @@ public class NewTransactionPanel extends JPanel {
                     SELECT COUNT(*)
                     FROM accounts
                     WHERE active = 1 AND id IN (?, ?)
+                    AND owner_username = ?
                     """;
 
                 try (
@@ -257,6 +314,7 @@ public class NewTransactionPanel extends JPanel {
                 ) {
                     check.setInt(1, debitId);
                     check.setInt(2, creditId);
+                    check.setString(3, Session.getCurrentUser());
 
                     try (ResultSet result = check.executeQuery()) {
                         if (!result.next() || result.getInt(1) != 2) {
@@ -269,11 +327,13 @@ public class NewTransactionPanel extends JPanel {
 
                 // Insert the transaction and retrieve its PostgreSQL ID.
                 String transactionSql = """
-                    INSERT INTO transactions (
-                        transaction_date, description
-                    ) VALUES (?, ?)
-                    RETURNING id
-                    """;
+                INSERT INTO transactions (
+                    transaction_date,
+                    description,
+                    owner_username
+                 ) VALUES (?, ?, ?)
+                RETURNING id
+             """;
 
                 long transactionId;
 
@@ -283,6 +343,7 @@ public class NewTransactionPanel extends JPanel {
                 ) {
                     statement.setString(1, date.toString());
                     statement.setString(2, description);
+                    statement.setString(3, Session.getCurrentUser());
 
                     try (ResultSet result = statement.executeQuery()) {
                         if (!result.next()) {
@@ -381,7 +442,7 @@ public class NewTransactionPanel extends JPanel {
 
         @Override
         public String toString() {
-            return code + " - " + name;
+            return name;
         }
     }
 }

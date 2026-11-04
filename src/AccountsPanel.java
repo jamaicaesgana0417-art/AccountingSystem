@@ -104,19 +104,20 @@ public class AccountsPanel extends JPanel {
         }
 
         String sql =
-            "INSERT INTO accounts (code, name, type) VALUES (?, ?, ?)";
+            "INSERT INTO accounts (code, name, type, owner_username) VALUES (?, ?, ?, ?)";
 
         try (
             Connection connection = Database.connect()
         ) {
             // Check whether the account code is already used.
-            String checkSql = "SELECT 1 FROM accounts WHERE code = ?";
+            String checkSql = "SELECT 1 FROM accounts WHERE code = ? AND owner_username = ?";
 
             try (
                 PreparedStatement check =
                     connection.prepareStatement(checkSql)
             ) {
                 check.setString(1, code);
+                check.setString(2, Session.getCurrentUser());
 
                 try (ResultSet result = check.executeQuery()) {
                     if (result.next()) {
@@ -138,6 +139,7 @@ public class AccountsPanel extends JPanel {
                 statement.setString(1, code);
                 statement.setString(2, name);
                 statement.setString(3, type);
+                statement.setString(4, Session.getCurrentUser());
                 statement.executeUpdate();
             }
 
@@ -156,8 +158,12 @@ public class AccountsPanel extends JPanel {
     }
 
     private void loadAccounts() {
-        String sql =
-            "SELECT id, code, name, type FROM accounts ORDER BY code";
+        String sql = """
+            SELECT id, code, name, type 
+            FROM accounts
+            WHERE owner_username = ?
+            ORDER BY code
+            """;
 
         // Read records first so a failed refresh preserves the table.
         java.util.List<Object[]> rows = new java.util.ArrayList<>();
@@ -165,9 +171,11 @@ public class AccountsPanel extends JPanel {
         try (
             Connection connection = Database.connect();
             PreparedStatement statement =
-                connection.prepareStatement(sql);
-            ResultSet result = statement.executeQuery()
+                connection.prepareStatement(sql)
         ) {
+            statement.setString(1, Session.getCurrentUser());
+
+            try (ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 rows.add(new Object[] {
                     result.getInt("id"),
@@ -176,7 +184,7 @@ public class AccountsPanel extends JPanel {
                     result.getString("type")
                 });
             }
-
+            }
         } catch (SQLException exception) {
             showDatabaseError("Could not load accounts.", exception);
             return;

@@ -188,10 +188,11 @@ public class JournalPanel extends JPanel {
             FROM journal_lines j
             JOIN transactions t ON t.id = j.transaction_id
             JOIN accounts a ON a.id = j.account_id
-            WHERE 1 = 1
+            WHERE t.owner_username = ?
             """);
 
         List<String> parameters = new ArrayList<>();
+        parameters.add(Session.getCurrentUser());
 
         if (start != null) {
             sql.append(" AND t.transaction_date >= ? ");

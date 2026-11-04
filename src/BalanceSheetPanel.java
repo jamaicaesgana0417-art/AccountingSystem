@@ -12,7 +12,6 @@ import javax.swing.table.*;
 /** Two-column balance sheet populated from posted journal entries. */
 public class BalanceSheetPanel extends JPanel {
     private static final Color LINE = new Color(190, 194, 199);
-    private static final Color STRIPE = new Color(246, 248, 250);
 
     private final DefaultTableModel assets = reportModel("Assets");
     private final DefaultTableModel other = reportModel("Liabilities & Equity");
@@ -307,8 +306,10 @@ public class BalanceSheetPanel extends JPanel {
                    SELECT id
                    FROM transactions
                    WHERE transaction_date <= ?
+                        AND owner_username = ?
              )
             WHERE a.active = 1
+                AND a.owner_username = ?
               AND a.type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')
             GROUP BY a.id, a.name, a.type
             ORDER BY a.type, a.name
@@ -321,6 +322,8 @@ public class BalanceSheetPanel extends JPanel {
             PreparedStatement statement = connection.prepareStatement(sql)
         ) {
             statement.setString(1, asOf.toString());
+            statement.setString(2, Session.getCurrentUser());
+            statement.setString(3, Session.getCurrentUser());
 
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
