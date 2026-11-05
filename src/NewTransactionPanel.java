@@ -110,6 +110,7 @@ public class NewTransactionPanel extends JPanel {
         "Prepaid Insurance",
         "Prepaid Rent",
         "Equipment",
+        "Accumulated Depreciation - Equipment",
         "Furniture",
         "Vehicles",
         "Accounts Payable",
@@ -142,14 +143,13 @@ public class NewTransactionPanel extends JPanel {
         showWarning("Please log in before creating a transaction.");
         return;
     }
-
-    String sql = """
-        SELECT id, code, name, type
-        FROM accounts
-        WHERE active = 1
-          AND owner_username = ?
-        ORDER BY code
-        """;
+String sql = """
+    SELECT id, code, name, type
+    FROM accounts
+    WHERE active = 1
+      AND (owner_username IS NULL OR owner_username = ?)
+    ORDER BY code
+    """;
 
     try (
         Connection connection = Database.connect();
@@ -165,11 +165,12 @@ public class NewTransactionPanel extends JPanel {
                 if (allowedNames.contains(name)) {
                     String type = result.getString("type");
 
-                    accounts.add(new AccountOption(
-                        result.getInt("id"),
-                        result.getString("code"),
-                        name + " [" + type + "]"
-                    ));
+                   accounts.add(new AccountOption(
+    result.getInt("id"),
+    result.getString("code"),
+    name,
+    type
+));
                 }
             }
         }
@@ -178,6 +179,7 @@ public class NewTransactionPanel extends JPanel {
         debitBox.removeAllItems();
         creditBox.removeAllItems();
         postButton.setEnabled(false);
+            exception.printStackTrace();
         showError("Could not load accounts.", exception);
         return;
     }
@@ -429,20 +431,22 @@ public class NewTransactionPanel extends JPanel {
         );
     }
 
-    private static class AccountOption {
-        private final int id;
-        private final String code;
-        private final String name;
+ private static class AccountOption {
+    private final int id;
+    private final String code;
+    private final String name;
+    private final String type;
 
-        AccountOption(int id, String code, String name) {
-            this.id = id;
-            this.code = code;
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
+    AccountOption(int id, String code, String name, String type) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return name + " [" + type + "]";
+    }
+}
 }
