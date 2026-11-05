@@ -4,17 +4,22 @@ import java.sql.SQLException;
 
 public class Database {
 
-    public static Connection connect() throws SQLException {
-        String url = System.getenv("DB_URL");
-        String user = System.getenv("DB_USER");
-        String password = System.getenv("DB_PASSWORD");
+    // ---- Built-in Supabase connection (no setup needed to run the app) ----
+    private static final String URL =
+        "jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require";
+    private static final String USER = "postgres.jinrxgmbxxgbggkdwkfd";
 
-        if (url == null || user == null || password == null) {
+    // Paste your Supabase database password between the quotes ONCE, then rebuild.
+    private static final String PASSWORD = "M3oEulFY01eXBh7J";
+    // -----------------------------------------------------------------------
+
+    public static Connection connect() throws SQLException {
+        if (PASSWORD.startsWith("PASTE_YOUR")) {
             throw new SQLException(
-                "Missing database settings. Set DB_URL, DB_USER, and DB_PASSWORD."
+                "Database password not set. Open src/Database.java and paste it into PASSWORD."
             );
         }
-        return DriverManager.getConnection(url, user, password);
+        return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
     public static void initialize() throws SQLException {

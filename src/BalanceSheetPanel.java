@@ -182,6 +182,7 @@ public class BalanceSheetPanel extends JPanel {
                 BigDecimal net = account.net();
                 switch (account.type) {
                     case "ASSET":
+                    case "CONTRA-ASSET":
                         if (net.signum() != 0) {
                             assets.addRow(new Object[]{account.name, net});
                         }
@@ -196,6 +197,7 @@ public class BalanceSheetPanel extends JPanel {
                         break;
 
                     case "EQUITY":
+                    case "CONTRA-EQUITY":
                         if (net.signum() != 0) {
                             other.addRow(new Object[]{account.name, net.negate()});
                         }
@@ -310,7 +312,7 @@ public class BalanceSheetPanel extends JPanel {
              )
             WHERE a.active = 1
                 AND a.owner_username = ?
-              AND a.type IN ('ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE')
+              AND a.type IN ('ASSET', 'CONTRA-ASSET', 'LIABILITY', 'EQUITY', 'CONTRA-EQUITY', 'REVENUE', 'EXPENSE')
             GROUP BY a.id, a.name, a.type
             ORDER BY a.type, a.name
             """;

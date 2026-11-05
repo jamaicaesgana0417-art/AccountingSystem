@@ -102,36 +102,11 @@ public class NewTransactionPanel extends JPanel {
     public void refreshAccounts() {
     List<AccountOption> accounts = new ArrayList<>();
 
-    // Only these account names will appear in the two dropdowns.
-    List<String> allowedNames = List.of(
-        "Cash",
-        "Accounts Receivable",
-        "Supplies",
-        "Prepaid Insurance",
-        "Prepaid Rent",
-        "Equipment",
-        "Furniture",
-        "Vehicles",
-        "Accounts Payable",
-        "Unearned Revenue",
-        "Notes Payable",
-        "Salaries Payable",
-        "Owner's Capital",
-        "Owner's Drawings",
-        "Service Revenue",
-        "Expenses",
-        "Advertising Expense",
-        "Utilities Expense",
-        "Salaries Expense",
-        "Maintenance Expense",
-        "Professional Fees Expense",
-        "Repairs Expense",
-        "Rent Expense",
-        "Interest Expense",
-        "Insurance Expense",
-        "Supplies Expense",
-        "Depreciation Expense"
-    );
+    // Only the predefined account names appear in the two dropdowns.
+    List<String> allowedNames = new ArrayList<>();
+    for (ChartOfAccounts.Entry entry : ChartOfAccounts.ACCOUNTS) {
+        allowedNames.add(entry.name);
+    }
 
     String username = Session.getCurrentUser();
 

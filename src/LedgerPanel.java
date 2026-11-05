@@ -390,8 +390,7 @@ public class LedgerPanel extends JPanel {
         });
 
         String normalSide =
-            account.type.equals("ASSET")
-                || account.type.equals("EXPENSE")
+            ChartOfAccounts.isDebitNormal(account.type)
                 ? "Debit"
                 : "Credit";
 
