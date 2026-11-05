@@ -110,6 +110,7 @@ public class NewTransactionPanel extends JPanel {
         "Prepaid Insurance",
         "Prepaid Rent",
         "Equipment",
+        "Accumulated Depreciation - Equipment",
         "Furniture",
         "Vehicles",
         "Accounts Payable",
@@ -142,14 +143,13 @@ public class NewTransactionPanel extends JPanel {
         showWarning("Please log in before creating a transaction.");
         return;
     }
-
-    String sql = """
-        SELECT id, code, name, type
-        FROM accounts
-        WHERE active = 1
-          AND owner_username = ?
-        ORDER BY code
-        """;
+String sql = """
+    SELECT id, code, name, type
+    FROM accounts
+    WHERE active = 1
+      AND (owner_username IS NULL OR owner_username = ?)
+    ORDER BY code
+    """;
 
     try (
         Connection connection = Database.connect();
@@ -165,11 +165,12 @@ public class NewTransactionPanel extends JPanel {
                 if (allowedNames.contains(name)) {
                     String type = result.getString("type");
 
-                    accounts.add(new AccountOption(
-                        result.getInt("id"),
-                        result.getString("code"),
-                        name + " [" + type + "]"
-                    ));
+                   accounts.add(new AccountOption(
+    result.getInt("id"),
+    result.getString("code"),
+    name,
+    type
+));
                 }
             }
         }
@@ -447,4 +448,5 @@ public class NewTransactionPanel extends JPanel {
     public String toString() {
         return name + " [" + type + "]";
     }
+}
 }
