@@ -3,24 +3,12 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
 
+/** Read-only chart of accounts (the account list is fixed for everyone). */
 public class AccountsPanel extends JPanel {
-
-    private final JTextField codeField = new JTextField();
-    private final JTextField nameField = new JTextField();
-
-    private final JComboBox<String> typeBox = new JComboBox<>(
-        new String[] {
-            "ASSET",
-            "LIABILITY",
-            "EQUITY",
-            "REVENUE",
-            "EXPENSE"
-        }
-    );
 
     private final DefaultTableModel tableModel =
         new DefaultTableModel(
-            new String[] {"ID", "Code", "Account Name", "Type"},
+            new String[] {"Code", "Account Name", "Type"},
             0
         ) {
             @Override
@@ -37,34 +25,9 @@ public class AccountsPanel extends JPanel {
         );
 
         JLabel heading = new JLabel("Chart of Accounts");
-        heading.setFont(new Font("Inter", Font.BOLD, 24)); //ge change nako font
+        heading.setFont(new Font("Inter", Font.BOLD, 24));
         heading.setForeground(new Color(15, 70, 125));
 
-        // Account input form
-        JPanel form = new JPanel(new GridLayout(0, 2, 12, 12));
-        form.setOpaque(false);
-
-        form.add(new JLabel("Account Code:"));
-        form.add(codeField);
-
-        form.add(new JLabel("Account Name:"));
-        form.add(nameField);
-
-        form.add(new JLabel("Account Type:"));
-        form.add(typeBox);
-
-        JButton addButton = new JButton("Add Account");
-        JButton clearButton = new JButton("Clear Form");
-
-        form.add(addButton);
-        form.add(clearButton);
-
-        JPanel top = new JPanel(new BorderLayout(0, 20));
-        top.setOpaque(false);
-        top.add(heading, BorderLayout.NORTH);
-        top.add(form, BorderLayout.CENTER);
-
-        // Saved accounts table
         JTable table = new JTable(tableModel);
         table.setRowHeight(26);
         table.setFillsViewportHeight(true);
@@ -77,95 +40,23 @@ public class AccountsPanel extends JPanel {
         bottom.setOpaque(false);
         bottom.add(refreshButton);
 
-        add(top, BorderLayout.NORTH);
+        add(heading, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
         add(bottom, BorderLayout.SOUTH);
 
-        addButton.addActionListener(event -> addAccount());
-        clearButton.addActionListener(event -> clearForm());
-        refreshButton.addActionListener(event -> loadAccounts());
+        refreshButton.addActionListener(event -> refreshAccounts());
 
-        loadAccounts();
+        refreshAccounts();
     }
 
-    private void addAccount() {
-        String code = codeField.getText().trim();
-        String name = nameField.getText().trim();
-        String type = (String) typeBox.getSelectedItem();
-
-        if (code.isEmpty() || name.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Enter an account code and account name.",
-                "Missing Information",
-                JOptionPane.WARNING_MESSAGE
-            );
-            return;
-        }
-
-        String sql =
-            "INSERT INTO accounts (code, name, type, owner_username) VALUES (?, ?, ?, ?)";
-
-        try (
-            Connection connection = Database.connect()
-        ) {
-            // Check whether the account code is already used.
-            String checkSql = "SELECT 1 FROM accounts WHERE code = ? AND owner_username = ?";
-
-            try (
-                PreparedStatement check =
-                    connection.prepareStatement(checkSql)
-            ) {
-                check.setString(1, code);
-                check.setString(2, Session.getCurrentUser());
-
-                try (ResultSet result = check.executeQuery()) {
-                    if (result.next()) {
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "That account code already exists.",
-                            "Duplicate Account Code",
-                            JOptionPane.WARNING_MESSAGE
-                        );
-                        return;
-                    }
-                }
-            }
-
-            try (
-                PreparedStatement statement =
-                    connection.prepareStatement(sql)
-            ) {
-                statement.setString(1, code);
-                statement.setString(2, name);
-                statement.setString(3, type);
-                statement.setString(4, Session.getCurrentUser());
-                statement.executeUpdate();
-            }
-
-        } catch (SQLException exception) {
-            showDatabaseError("Could not save the account.", exception);
-            return;
-        }
-
-        clearForm();
-        loadAccounts();
-
-        JOptionPane.showMessageDialog(
-            this,
-            "Account saved successfully."
-        );
-    }
-
-    private void loadAccounts() {
+    public void refreshAccounts() {
         String sql = """
-            SELECT id, code, name, type 
+            SELECT code, name, type
             FROM accounts
-            WHERE owner_username = ?
+            WHERE owner_username = ? AND active = 1
             ORDER BY code
             """;
 
-        // Read records first so a failed refresh preserves the table.
         java.util.List<Object[]> rows = new java.util.ArrayList<>();
 
         try (
@@ -176,17 +67,22 @@ public class AccountsPanel extends JPanel {
             statement.setString(1, Session.getCurrentUser());
 
             try (ResultSet result = statement.executeQuery()) {
-            while (result.next()) {
-                rows.add(new Object[] {
-                    result.getInt("id"),
-                    result.getString("code"),
-                    result.getString("name"),
-                    result.getString("type")
-                });
-            }
+                while (result.next()) {
+                    rows.add(new Object[] {
+                        result.getString("code"),
+                        result.getString("name"),
+                        result.getString("type")
+                    });
+                }
             }
         } catch (SQLException exception) {
-            showDatabaseError("Could not load accounts.", exception);
+            exception.printStackTrace();
+            JOptionPane.showMessageDialog(
+                this,
+                "Could not load accounts.\n" + exception.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE
+            );
             return;
         }
 
@@ -195,26 +91,5 @@ public class AccountsPanel extends JPanel {
         for (Object[] row : rows) {
             tableModel.addRow(row);
         }
-    }
-
-    private void clearForm() {
-        codeField.setText("");
-        nameField.setText("");
-        typeBox.setSelectedIndex(0);
-        codeField.requestFocusInWindow();
-    }
-
-    private void showDatabaseError(
-        String message,
-        SQLException exception
-    ) {
-        exception.printStackTrace();
-
-        JOptionPane.showMessageDialog(
-            this,
-            message + "\n" + exception.getMessage(),
-            "Database Error",
-            JOptionPane.ERROR_MESSAGE
-        );
     }
 }
