@@ -177,28 +177,33 @@ public class LedgerPanel extends JPanel {
         String sql = """
             SELECT id, code, name, type
             FROM accounts
+            WHERE owner_username = ?
             ORDER BY code
             """;
 
-        try (
-            Connection connection = Database.connect();
-            PreparedStatement statement =
-                connection.prepareStatement(sql);
-            ResultSet result = statement.executeQuery()
-        ) {
-            while (result.next()) {
-                accounts.add(new AccountOption(
-                    result.getInt("id"),
-                    result.getString("code"),
-                    result.getString("name"),
-                    result.getString("type")
-                ));
-            }
+ try (
+    Connection connection = Database.connect();
+    PreparedStatement statement =
+        connection.prepareStatement(sql)
+) {
+    // Load only accounts belonging to the logged-in user.
+    statement.setString(1, Session.getCurrentUser());
 
-        } catch (SQLException exception) {
-            showDatabaseError("Could not load accounts.", exception);
-            return;
+    try (ResultSet result = statement.executeQuery()) {
+        while (result.next()) {
+            accounts.add(new AccountOption(
+                result.getInt("id"),
+                result.getString("code"),
+                result.getString("name"),
+                result.getString("type")
+            ));
         }
+    }
+
+} catch (SQLException exception) {
+    showDatabaseError("Could not load accounts.", exception);
+    return;
+}
 
         loadingAccounts = true;
 
@@ -268,6 +273,7 @@ public class LedgerPanel extends JPanel {
             FROM journal_lines j
             JOIN transactions t ON t.id = j.transaction_id
             WHERE j.account_id = ?
+                AND t.owner_username = ?
             """;
 
         if (end != null) {
@@ -291,9 +297,10 @@ public class LedgerPanel extends JPanel {
                 connection.prepareStatement(sql)
         ) {
             statement.setInt(1, account.id);
-
+            statement.setString(2, Session.getCurrentUser());
+            
             if (end != null) {
-                statement.setString(2, end.toString());
+                statement.setString(3, end.toString());
             }
 
             try (ResultSet result = statement.executeQuery()) {

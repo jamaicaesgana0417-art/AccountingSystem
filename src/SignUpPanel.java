@@ -4,8 +4,6 @@ import javax.swing.*;
 
 public class SignUpPanel extends JPanel {
 
-    private static final Color SUCCESS = new Color(0x4CD964);
-
     private final JTextField usernameField = Theme.textField("Username");
     private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
     private final JPasswordField confirmField = Theme.passwordField("Confirm password");

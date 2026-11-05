@@ -191,21 +191,26 @@ public class TransactionsPanel extends JPanel {
         String sql = """
             SELECT id, code, name
             FROM accounts
+            WHERE active = 1
+            AND owner_username = ?
             ORDER BY code
             """;
 
         try (
             Connection connection = Database.connect();
             PreparedStatement statement =
-                connection.prepareStatement(sql);
-            ResultSet result = statement.executeQuery()
+                connection.prepareStatement(sql)
         ) {
+            statement.setString(1, Session.getCurrentUser());
+
+            try (ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 accounts.add(new AccountOption(
                     result.getInt("id"),
                     result.getString("code")
                         + " - " + result.getString("name")
                 ));
+            }
             }
 
         } catch (SQLException exception) {
@@ -291,10 +296,11 @@ public class TransactionsPanel extends JPanel {
                 ON c.transaction_id = t.id
                 AND c.credit_centavos > 0
             JOIN accounts ca ON ca.id = c.account_id
-            WHERE 1 = 1
+            WHERE t.owner_username = ?
             """);
 
         List<Object> parameters = new ArrayList<>();
+        parameters.add(Session.getCurrentUser());
 
         if (start != null) {
             sql.append(" AND t.transaction_date >= ? ");
