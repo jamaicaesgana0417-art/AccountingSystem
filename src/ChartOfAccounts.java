@@ -1,0 +1,151 @@
+import java.sql.*;
+import java.util.*;
+
+/** The fixed chart of accounts. Every user gets their own copy of these. */
+public final class ChartOfAccounts {
+
+    public static final class Entry {
+        public final String code;
+        public final String name;
+        public final String type;
+
+        Entry(String code, String name, String type) {
+            this.code = code;
+            this.name = name;
+            this.type = type;
+        }
+    }
+
+    public static final List<Entry> ACCOUNTS = List.of(
+        new Entry("1010", "Cash", "ASSET"),
+        new Entry("1020", "Accounts Receivable", "ASSET"),
+        new Entry("1030", "Supplies", "ASSET"),
+        new Entry("1040", "Prepaid Insurance", "ASSET"),
+        new Entry("1050", "Prepaid Rent", "ASSET"),
+        new Entry("1060", "Equipment", "ASSET"),
+        new Entry("1065", "Accumulated Depreciation - Equipment", "CONTRA-ASSET"),
+        new Entry("1070", "Furniture", "ASSET"),
+        new Entry("1080", "Vehicles", "ASSET"),
+        new Entry("2010", "Accounts Payable", "LIABILITY"),
+        new Entry("2020", "Unearned Revenue", "LIABILITY"),
+        new Entry("2030", "Notes Payable", "LIABILITY"),
+        new Entry("2040", "Salaries Payable", "LIABILITY"),
+        new Entry("3010", "Owner's Capital", "EQUITY"),
+        new Entry("3020", "Owner's Drawings", "CONTRA-EQUITY"),
+        new Entry("4010", "Service Revenue", "REVENUE"),
+        new Entry("5000", "Expenses", "EXPENSE"),
+        new Entry("5010", "Advertising Expense", "EXPENSE"),
+        new Entry("5020", "Utilities Expense", "EXPENSE"),
+        new Entry("5030", "Salaries Expense", "EXPENSE"),
+        new Entry("5040", "Maintenance Expense", "EXPENSE"),
+        new Entry("5050", "Professional Fees Expense", "EXPENSE"),
+        new Entry("5060", "Repairs Expense", "EXPENSE"),
+        new Entry("5070", "Rent Expense", "EXPENSE"),
+        new Entry("5080", "Interest Expense", "EXPENSE"),
+        new Entry("5090", "Insurance Expense", "EXPENSE"),
+        new Entry("5100", "Supplies Expense", "EXPENSE"),
+        new Entry("5110", "Depreciation Expense", "EXPENSE")
+    );
+
+    private ChartOfAccounts() {}
+
+    /** True for accounts whose normal balance is a debit. */
+    public static boolean isDebitNormal(String type) {
+        return type.equals("ASSET")
+            || type.equals("EXPENSE")
+            || type.equals("CONTRA-EQUITY");
+    }
+
+    private static String key(String name) {
+        return name.trim().replace('\u2019', '\'').toLowerCase();
+    }
+
+    /**
+     * Makes sure the user has every predefined account (existing ones are
+     * kept, with their type corrected and switched to active).
+     */
+    public static void ensureForUser(String username) throws SQLException {
+        try (Connection connection = Database.connect()) {
+            connection.setAutoCommit(false);
+
+            try {
+                Map<String, int[]> idByName = new HashMap<>();      // id, active
+                Map<String, String> typeByName = new HashMap<>();
+                Set<String> usedCodes = new HashSet<>();
+
+                String selectSql = """
+                    SELECT id, code, name, type, active
+                    FROM accounts
+                    WHERE owner_username = ?
+                    """;
+
+                try (PreparedStatement select =
+                         connection.prepareStatement(selectSql)) {
+                    select.setString(1, username);
+
+                    try (ResultSet rs = select.executeQuery()) {
+                        while (rs.next()) {
+                            String k = key(rs.getString("name"));
+                            idByName.putIfAbsent(
+                                k, new int[] {rs.getInt("id"), rs.getInt("active")});
+                            typeByName.putIfAbsent(k, rs.getString("type"));
+                            usedCodes.add(rs.getString("code"));
+                        }
+                    }
+                }
+
+                String insertSql = """
+                    INSERT INTO accounts (code, name, type, active, owner_username)
+                    VALUES (?, ?, ?, 1, ?)
+                    """;
+                String updateSql = """
+                    UPDATE accounts SET type = ?, active = 1 WHERE id = ?
+                    """;
+
+                try (PreparedStatement insert =
+                         connection.prepareStatement(insertSql);
+                     PreparedStatement update =
+                         connection.prepareStatement(updateSql)) {
+
+                    for (Entry entry : ACCOUNTS) {
+                        String k = key(entry.name);
+
+                        if (idByName.containsKey(k)) {
+                            int[] found = idByName.get(k);
+                            if (!entry.type.equals(typeByName.get(k))
+                                    || found[1] != 1) {
+                                update.setString(1, entry.type);
+                                update.setInt(2, found[0]);
+                                update.executeUpdate();
+                            }
+                            continue;
+                        }
+
+                        // Pick a free code if the preferred one is taken.
+                        int code = Integer.parseInt(entry.code);
+                        while (usedCodes.contains(String.valueOf(code))) {
+                            code++;
+                        }
+                        usedCodes.add(String.valueOf(code));
+
+                        insert.setString(1, String.valueOf(code));
+                        insert.setString(2, entry.name);
+                        insert.setString(3, entry.type);
+                        insert.setString(4, username);
+                        insert.executeUpdate();
+                    }
+                }
+
+                connection.commit();
+
+            } catch (SQLException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    exception.addSuppressed(rollbackException);
+                }
+                throw exception;
+            }
+        }
+    }
+}

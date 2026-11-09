@@ -6,17 +6,20 @@
 - Java JDK installed.
 - Visual Studio Code with the Extension Pack for Java.
 - PostgreSQL JDBC driver at `lib/postgresql-42.7.14.jar`.
-- Supabase database configured with the required tables.
-- Database environment variables configured: `DB_URL`, `DB_USER`, and `DB_PASSWORD`.
 
 ### Steps
+
+## One-time setup
+Double-click `build.bat` (needs a JDK). It creates `AccountingSystem.jar`.
+
+## Every open
+Double-click `AccountingSystem.jar`. No passwords or environment variables needed.
 
 1. Download or clone the project from GitHub.
 2. Open the `AccountingSystem` project folder in Visual Studio Code. Make sure it contains `src`, `bin`, `lib`, and `.vscode`.
 3. Check that `postgresql-42.7.14.jar` is inside the `lib` folder.
-4. Configure the database environment variables on your computer. Keep your database password private.
-5. Wait for the Java extension to finish building the project.
-6. Open the **Run and Debug** panel in VS Code.
+4. Wait for the Java extension to finish building the project.
+5. Open the **Run and Debug** panel in VS Code.
 7. Select **Run Accounting App** from the launch configuration.
 8. Click the green **Start Debugging** button or press `F5`.
 9. The Accounting System login screen should appear.
@@ -27,8 +30,6 @@
 - Check that the PostgreSQL JDBC driver is in the correct folder.
 - Verify your Supabase connection settings and internet connection.
 - If the database connection times out, try another network and check whether the database port is reachable.
-
-**Important:** Each computer must have its own database environment variables configured before launching the app.# Accounting System (PostgreSQL / Supabase)
 
 ## Project folders
 - `src/`: Java source files.

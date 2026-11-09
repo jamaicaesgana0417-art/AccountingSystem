@@ -50,6 +50,20 @@ public class App {
 
     // Called by LoginFrame after a successful login.
     public static void openAccountingWindow(String username) {
+        // Every user gets the fixed chart of accounts.
+        try {
+            ChartOfAccounts.ensureForUser(username);
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            JOptionPane.showMessageDialog(
+                null,
+                "Could not set up your accounts:\n"
+                    + exception.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+
         JFrame window = new JFrame(
             "Accounting System - " + username
         );
@@ -309,6 +323,10 @@ Consumer<String> navigate = screen -> {
 
         case "Transactions":
             transactionsPanel.refreshTransactions();
+            break;
+
+        case "Accounts":
+            accountsPanel.refreshAccounts();
             break;
 
         case "General Journal":
@@ -757,7 +775,7 @@ sideMenu.add(logoutButton);
 
         tools.add(createToolButton(
             "Accounts",
-            "Create and organize your accounts.",
+            "View your chart of accounts.",
             navigate
         ));
 
