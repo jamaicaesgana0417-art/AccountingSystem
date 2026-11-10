@@ -106,6 +106,7 @@ public class App {
         CardLayout cardLayout = new CardLayout();
 
         JPanel content = new JPanel(cardLayout);
+        HomeDashboard[] homeDashboard = new HomeDashboard[1];
 
         content.add(
             newTransactionPanel,
@@ -311,6 +312,12 @@ sideMenu.add(Box.createVerticalStrut(20));
 // Navigation actions.
 Consumer<String> navigate = screen -> {
     switch (screen) {
+        case "Home":
+            if (homeDashboard[0] != null) {
+                homeDashboard[0].refreshStats();
+            }
+            break;
+
         case "New Transaction":
             newTransactionPanel.refreshAccounts();
             break;
@@ -340,6 +347,7 @@ Consumer<String> navigate = screen -> {
     }
 
     cardLayout.show(content, screen);
+    sideMenu.setVisible(!"Home".equals(screen));
 
     overlay.setVisible(false);
 
@@ -487,7 +495,9 @@ sideMenu.add(logoutButton);
 );
 
         // Home screen.
-        JPanel homePanel = createHomePanel(navigate);
+        HomeDashboard homePanel =
+            new HomeDashboard(username, navigate);
+        homeDashboard[0] = homePanel;
 
         content.add(homePanel, "Home");
 
@@ -586,10 +596,14 @@ profileMenu.add(logoutMenuItem);
 
         header.add(brand, BorderLayout.WEST);
         window.add(header, BorderLayout.NORTH);
-        window.add(sideMenu, BorderLayout.WEST);
-        window.add(content, BorderLayout.CENTER);
+
+        JPanel workspace = new JPanel(new BorderLayout());
+        workspace.add(sideMenu, BorderLayout.WEST);
+        workspace.add(content, BorderLayout.CENTER);
+        window.add(workspace, BorderLayout.CENTER);
 
         cardLayout.show(content, "Home");
+        sideMenu.setVisible(false);
 
         window.setVisible(true);
     }
@@ -1120,284 +1134,433 @@ profileMenu.add(logoutMenuItem);
         }.execute();
     }
 
-    private static JPanel createHomePanel(
-        Consumer<String> navigate
+    private static final class HomeDashboard extends JPanel {
+        private final String username;
+        private final JLabel entriesValue = new JLabel("Loading...");
+        private final JLabel accountsValue = new JLabel("Loading...");
+        private final JLabel balancedValue = new JLabel("Loading...");
+        private final JLabel statsError = new JLabel(" ");
+
+        HomeDashboard(String username, Consumer<String> navigate) {
+            this.username = username;
+            setLayout(new BorderLayout());
+            setBackground(BACKGROUND);
+            setOpaque(true);
+
+            JLabel dateLabel = new JLabel(
+                java.time.LocalDate.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern(
+                        "EEEE, MMMM d"
+                    )
+                ).toUpperCase()
+            );
+            dateLabel.setForeground(ACCENT);
+            dateLabel.setFont(new Font("Poppins", Font.BOLD, 10));
+            dateLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JPanel content = new JPanel();
+            content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+            content.setBorder(new EmptyBorder(28, 36, 28, 36));
+            content.setOpaque(false);
+
+            JLabel heading = new JLabel("Hey, Student!");
+            heading.setForeground(DARK_TEXT);
+            heading.setFont(new Font("Poppins", Font.BOLD, 30));
+            heading.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JLabel subtitle = new JLabel(
+                "Welcome back — let’s make today count."
+            );
+            subtitle.setForeground(MUTED_TEXT);
+            subtitle.setFont(new Font("Poppins", Font.PLAIN, 13));
+            subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JPanel hero = new JPanel(new BorderLayout(20, 0)) {
+                @Override
+                protected void paintComponent(Graphics graphics) {
+                    super.paintComponent(graphics);
+                    Graphics2D g2 = (Graphics2D) graphics.create();
+                    g2.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                    );
+                    g2.setPaint(new GradientPaint(
+                        0, 0, new Color(22, 52, 91),
+                        getWidth(), getHeight(), new Color(42, 105, 161)
+                    ));
+                    g2.fillRoundRect(
+                        0, 0, getWidth(), getHeight(), 24, 24
+                    );
+                    g2.setColor(new Color(255, 255, 255, 18));
+                    g2.fillOval(getWidth() - 190, -90, 240, 240);
+                    g2.fillOval(getWidth() - 125, 45, 115, 115);
+                    g2.dispose();
+                }
+            };
+            hero.setOpaque(false);
+            hero.setBorder(new EmptyBorder(23, 26, 23, 26));
+            hero.setAlignmentX(Component.LEFT_ALIGNMENT);
+            hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 138));
+
+            JPanel heroText = new JPanel();
+            heroText.setOpaque(false);
+            heroText.setLayout(new BoxLayout(heroText, BoxLayout.Y_AXIS));
+
+            JLabel heroTitle = new JLabel(
+                "YOUR ACCOUNTING JOURNEY STARTS HERE"
+            );
+            heroTitle.setForeground(Color.WHITE);
+            heroTitle.setFont(new Font("Poppins", Font.BOLD, 24));
+
+            JLabel heroSubtitle = new JLabel(
+                "One clear entry at a time, you’re building stronger books."
+            );
+            heroSubtitle.setForeground(new Color(220, 232, 246));
+            heroSubtitle.setFont(new Font("Poppins", Font.PLAIN, 12));
+
+            heroText.add(heroTitle);
+            heroText.add(Box.createVerticalStrut(5));
+            heroText.add(heroSubtitle);
+
+            JButton newTransactionButton =
+                new JButton("+  New transaction");
+            newTransactionButton.setBackground(Color.WHITE);
+            newTransactionButton.setForeground(NAVY);
+            newTransactionButton.setOpaque(true);
+            newTransactionButton.setContentAreaFilled(true);
+            newTransactionButton.setFocusPainted(false);
+            newTransactionButton.setFont(
+                new Font("Poppins", Font.BOLD, 12)
+            );
+            newTransactionButton.setBorder(
+                new EmptyBorder(12, 18, 12, 18)
+            );
+            newTransactionButton.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+            );
+            newTransactionButton.addActionListener(
+                event -> navigate.accept("New Transaction")
+            );
+
+            hero.add(heroText, BorderLayout.CENTER);
+            hero.add(newTransactionButton, BorderLayout.EAST);
+
+            JPanel stats = new JPanel(new GridLayout(1, 3, 14, 0));
+            stats.setOpaque(false);
+            stats.setAlignmentX(Component.LEFT_ALIGNMENT);
+            stats.setMaximumSize(new Dimension(Integer.MAX_VALUE, 108));
+            stats.add(createHomeStatCard(
+                "Entries this week",
+                entriesValue,
+                "Your weekly activity",
+                "↗",
+                ACCENT
+            ));
+            stats.add(createHomeStatCard(
+                "Accounts set up",
+                accountsValue,
+                "Ready to organize",
+                "▤",
+                new Color(75, 145, 117)
+            ));
+            stats.add(createHomeStatCard(
+                "Books balanced",
+                balancedValue,
+                "Debit and credit check",
+                "✓",
+                new Color(113, 104, 190)
+            ));
+
+            JLabel statsErrorLabel = statsError;
+            statsErrorLabel.setForeground(new Color(176, 55, 55));
+            statsErrorLabel.setFont(new Font("Poppins", Font.PLAIN, 11));
+            statsErrorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JPanel sectionHeading = new JPanel(new BorderLayout());
+            sectionHeading.setOpaque(false);
+            sectionHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JLabel quickActionsTitle = new JLabel("Quick actions");
+            quickActionsTitle.setForeground(DARK_TEXT);
+            quickActionsTitle.setFont(new Font("Poppins", Font.BOLD, 16));
+
+            JLabel quickActionsHint = new JLabel("Pick up where you left off");
+            quickActionsHint.setForeground(MUTED_TEXT);
+            quickActionsHint.setFont(new Font("Poppins", Font.PLAIN, 11));
+            sectionHeading.add(quickActionsTitle, BorderLayout.WEST);
+            sectionHeading.add(quickActionsHint, BorderLayout.EAST);
+
+            JPanel quickActions = new JPanel(new GridLayout(2, 3, 14, 14));
+            quickActions.setOpaque(false);
+            quickActions.setAlignmentX(Component.LEFT_ALIGNMENT);
+            quickActions.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+            quickActions.add(createToolButton(
+                "Transactions",
+                "Browse, filter, and export entries.",
+                navigate
+            ));
+            quickActions.add(createToolButton(
+                "Accounts",
+                "Keep your accounts organized.",
+                navigate
+            ));
+            quickActions.add(createToolButton(
+                "General Journal",
+                "See every entry in order.",
+                navigate
+            ));
+            quickActions.add(createToolButton(
+                "General Ledger",
+                "Explore balances and account activity.",
+                navigate
+            ));
+            quickActions.add(createToolButton(
+                "Balance Sheet",
+                "Review assets, liabilities, and equity.",
+                navigate
+            ));
+            quickActions.add(createToolButton(
+                "New Transaction",
+                "Record a debit and credit entry.",
+                navigate
+            ));
+            content.add(dateLabel);
+            content.add(Box.createVerticalStrut(5));
+            content.add(heading);
+            content.add(Box.createVerticalStrut(6));
+            content.add(subtitle);
+            content.add(Box.createVerticalStrut(20));
+            content.add(hero);
+            content.add(Box.createVerticalStrut(16));
+            content.add(stats);
+            content.add(Box.createVerticalStrut(2));
+            content.add(statsErrorLabel);
+            content.add(Box.createVerticalStrut(9));
+            content.add(sectionHeading);
+            content.add(Box.createVerticalStrut(10));
+            content.add(quickActions);
+
+            JScrollPane scrollPane = new JScrollPane(content);
+            scrollPane.setBorder(null);
+            scrollPane.setOpaque(false);
+            scrollPane.getViewport().setOpaque(false);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            add(scrollPane, BorderLayout.CENTER);
+
+            refreshStats();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
+            g2.setPaint(new GradientPaint(
+                0, 0, new Color(249, 252, 255),
+                0, getHeight(), BACKGROUND
+            ));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(new Color(62, 148, 204, 14));
+            g2.fillOval(getWidth() - 230, -145, 300, 300);
+            g2.dispose();
+        }
+
+        void refreshStats() {
+            new SwingWorker<HomeStats, Void>() {
+                @Override
+                protected HomeStats doInBackground() throws SQLException {
+                    String sql = """
+                        SELECT
+                            (SELECT COUNT(*) FROM transactions
+                             WHERE owner_username = ?
+                               AND transaction_date >= ?
+                               AND transaction_date <= ?) AS entries_this_week,
+                            (SELECT COUNT(*) FROM accounts
+                             WHERE owner_username = ? AND active = 1) AS active_accounts,
+                            (SELECT COALESCE(SUM(jl.debit_centavos), 0)
+                               FROM journal_lines jl
+                               JOIN transactions t ON t.id = jl.transaction_id
+                              WHERE t.owner_username = ?) AS total_debits,
+                            (SELECT COALESCE(SUM(jl.credit_centavos), 0)
+                               FROM journal_lines jl
+                               JOIN transactions t ON t.id = jl.transaction_id
+                              WHERE t.owner_username = ?) AS total_credits
+                        """;
+
+                    java.time.LocalDate today = java.time.LocalDate.now();
+                    java.time.LocalDate weekStart = today.with(
+                        java.time.DayOfWeek.MONDAY
+                    );
+
+                    try (
+                        Connection connection = Database.connect();
+                        PreparedStatement statement =
+                            connection.prepareStatement(sql)
+                    ) {
+                        statement.setString(1, username);
+                        statement.setString(2, weekStart.toString());
+                        statement.setString(3, today.toString());
+                        statement.setString(4, username);
+                        statement.setString(5, username);
+                        statement.setString(6, username);
+
+                        try (ResultSet result = statement.executeQuery()) {
+                            if (!result.next()) {
+                                throw new SQLException(
+                                    "Home dashboard summary returned no result."
+                                );
+                            }
+                            return new HomeStats(
+                                result.getInt("entries_this_week"),
+                                result.getInt("active_accounts"),
+                                result.getLong("total_debits"),
+                                result.getLong("total_credits")
+                            );
+                        }
+                    }
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        HomeStats stats = get();
+                        entriesValue.setText(
+                            Integer.toString(stats.entriesThisWeek)
+                        );
+                        accountsValue.setText(
+                            stats.activeAccounts + " / "
+                                + ChartOfAccounts.ACCOUNTS.size()
+                        );
+                        balancedValue.setText(
+                            stats.totalDebits == stats.totalCredits
+                                ? "Yes"
+                                : "Review"
+                        );
+                        statsError.setText(" ");
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        showStatsError("Could not load Home statistics.");
+                    } catch (java.util.concurrent.ExecutionException exception) {
+                        Throwable cause = exception.getCause();
+                        cause.printStackTrace();
+                        showStatsError(
+                            "Could not load Home statistics: "
+                                + cause.getMessage()
+                        );
+                    }
+                }
+            }.execute();
+        }
+
+        private void showStatsError(String message) {
+            entriesValue.setText("—");
+            accountsValue.setText("—");
+            balancedValue.setText("—");
+            statsError.setText(message);
+        }
+    }
+
+    private static final class HomeStats {
+        final int entriesThisWeek;
+        final int activeAccounts;
+        final long totalDebits;
+        final long totalCredits;
+
+        HomeStats(
+            int entriesThisWeek,
+            int activeAccounts,
+            long totalDebits,
+            long totalCredits
+        ) {
+            this.entriesThisWeek = entriesThisWeek;
+            this.activeAccounts = activeAccounts;
+            this.totalDebits = totalDebits;
+            this.totalCredits = totalCredits;
+        }
+    }
+
+    private static JPanel createHomeStatCard(
+        String title,
+        JLabel value,
+        String description,
+        String iconText,
+        Color accent
     ) {
-        JPanel home = new JPanel(
-            new BorderLayout()
-        );
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+                );
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(
+                    0, 0, getWidth() - 1, getHeight() - 1, 18, 18
+                );
+                g2.setColor(new Color(225, 233, 242));
+                g2.drawRoundRect(
+                    0, 0, getWidth() - 1, getHeight() - 1, 18, 18
+                );
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 15, 4, getHeight() - 30, 4, 4);
+                g2.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        card.setLayout(new BorderLayout(10, 0));
+        card.setOpaque(false);
+        card.setBorder(new EmptyBorder(13, 17, 12, 15));
 
-        home.setBackground(
-            new Color(242, 246, 251)
-        );
+        JLabel icon = new JLabel(iconText, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+                );
+                g2.setColor(new Color(
+                    Math.min(255, accent.getRed() + 105),
+                    Math.min(255, accent.getGreen() + 105),
+                    Math.min(255, accent.getBlue() + 105)
+                ));
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        icon.setForeground(accent);
+        icon.setFont(new Font("Poppins", Font.BOLD, 16));
+        icon.setOpaque(false);
+        icon.setPreferredSize(new Dimension(34, 34));
 
-        home.setBorder(
-            new EmptyBorder(20, 30, 30, 30)
-        );
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(MUTED_TEXT);
+        titleLabel.setFont(new Font("Poppins", Font.PLAIN, 10));
 
-        JPanel content = new JPanel();
+        value.setForeground(DARK_TEXT);
+        value.setFont(new Font("Poppins", Font.BOLD, 20));
 
-        content.setLayout(
-            new BoxLayout(
-                content,
-                BoxLayout.Y_AXIS
-            )
-        );
+        JLabel descriptionLabel = new JLabel(description);
+        descriptionLabel.setForeground(MUTED_TEXT);
+        descriptionLabel.setFont(new Font("Poppins", Font.PLAIN, 9));
 
-        content.setOpaque(false);
+        JPanel labels = new JPanel();
+        labels.setOpaque(false);
+        labels.setLayout(new BoxLayout(labels, BoxLayout.Y_AXIS));
+        labels.add(titleLabel);
+        labels.add(Box.createVerticalStrut(3));
+        labels.add(value);
+        labels.add(Box.createVerticalStrut(1));
+        labels.add(descriptionLabel);
 
-        JLabel breadcrumb = new JLabel(
-            "Home / Enhanced"
-        );
-
-        breadcrumb.setForeground(MUTED_TEXT);
-
-        breadcrumb.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                12
-            )
-        );
-
-        breadcrumb.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        JLabel heading = new JLabel(
-            "WELCOME"
-        );
-
-        heading.setForeground(DARK_TEXT);
-
-        heading.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                26
-            )
-        );
-
-        heading.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        content.add(heading);
-        content.add(Box.createVerticalStrut(8));
-
-        JLabel subtitle = new JLabel(
-            "Start a transaction or choose a "
-                + "section to manage your books."
-        );
-
-        subtitle.setForeground(MUTED_TEXT);
-
-        subtitle.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                13
-            )
-        );
-
-        subtitle.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        content.add(subtitle);
-        content.add(Box.createVerticalStrut(28));
-
-        JPanel banner = new JPanel(
-            new BorderLayout(20, 0)
-        );
-
-        banner.setBackground(NAVY);
-
-        banner.setBorder(
-            new EmptyBorder(20, 25, 20, 25)
-        );
-
-        banner.setMaximumSize(
-            new Dimension(
-                Integer.MAX_VALUE,
-                110
-            )
-        );
-
-        banner.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        JPanel bannerText = new JPanel();
-
-        bannerText.setLayout(
-            new BoxLayout(
-                bannerText,
-                BoxLayout.Y_AXIS
-            )
-        );
-
-        bannerText.setOpaque(false);
-
-        JLabel bannerTitle = new JLabel(
-            "Ready to record something new?"
-        );
-
-        bannerTitle.setForeground(Color.WHITE);
-
-        bannerTitle.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                16
-            )
-        );
-
-        JLabel bannerDescription = new JLabel(
-            "Create a balanced entry and keep "
-                + "your records up to date."
-        );
-
-        bannerDescription.setForeground(
-            new Color(220, 230, 242)
-        );
-
-        bannerDescription.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                12
-            )
-        );
-
-        bannerText.add(bannerTitle);
-        bannerText.add(Box.createVerticalStrut(6));
-        bannerText.add(bannerDescription);
-
-        JButton newTransactionButton =
-            new JButton("+  New Transaction");
-
-        newTransactionButton.setBackground(Color.WHITE);
-        newTransactionButton.setForeground(NAVY);
-        newTransactionButton.setOpaque(true);
-        newTransactionButton.setContentAreaFilled(true);
-        newTransactionButton.setFocusPainted(false);
-        newTransactionButton.setBorder(
-            new EmptyBorder(10, 15, 10, 15)
-        );
-        newTransactionButton.addActionListener(
-            event -> navigate.accept("New Transaction")
-        );
-
-        banner.add(bannerText, BorderLayout.CENTER);
-        banner.add(newTransactionButton, BorderLayout.EAST);
-
-        content.add(banner);
-        content.add(Box.createVerticalStrut(26));
-
-        JLabel toolsLabel = new JLabel(
-            "Your accounting tools"
-        );
-
-        toolsLabel.setForeground(DARK_TEXT);
-
-        toolsLabel.setFont(
-            new Font(
-                "SansSerif",
-                Font.BOLD,
-                15
-            )
-        );
-
-        toolsLabel.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        content.add(toolsLabel);
-        content.add(Box.createVerticalStrut(15));
-
-        JPanel tools = new JPanel(
-            new GridLayout(2, 3, 18, 18)
-        );
-
-        tools.setOpaque(false);
-        tools.setMaximumSize(
-            new Dimension(
-                Integer.MAX_VALUE,
-                420
-            )
-        );
-        tools.setPreferredSize(
-            new Dimension(800, 360)
-        );
-
-        tools.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        tools.add(createToolButton(
-            "New Transaction",
-            "Record a debit and credit entry.",
-            navigate
-        ));
-
-        tools.add(createToolButton(
-            "Transactions",
-            "Search and export posted transactions.",
-            navigate
-        ));
-
-        tools.add(createToolButton(
-            "Accounts",
-            "View your chart of accounts.",
-            navigate
-        ));
-
-        tools.add(createToolButton(
-            "General Journal",
-            "Review entries in chronological order.",
-            navigate
-        ));
-
-        tools.add(createToolButton(
-            "General Ledger",
-            "View activity and running balances.",
-            navigate
-        ));
-
-        tools.add(createToolButton(
-            "Balance Sheet",
-            "Review assets, liabilities, and equity.",
-            navigate
-        ));
-
-        content.add(tools);
-        content.add(Box.createVerticalStrut(20));
-
-        JLabel footer = new JLabel(
-            "Use the menu in the upper-right corner "
-                + "to switch sections at any time."
-        );
-
-        footer.setForeground(MUTED_TEXT);
-
-        footer.setFont(
-            new Font(
-                "SansSerif",
-                Font.PLAIN,
-                11
-            )
-        );
-
-        footer.setAlignmentX(
-            Component.LEFT_ALIGNMENT
-        );
-
-        content.add(footer);
-
-        home.add(content, BorderLayout.CENTER);
-
-        return home;
+        card.add(icon, BorderLayout.WEST);
+        card.add(labels, BorderLayout.CENTER);
+        return card;
     }
 
     private static JButton createToolButton(
@@ -1451,10 +1614,12 @@ String iconText;
             ? Color.WHITE
             : new Color(232, 242, 251);
 
-    // Draw the rounded card background.
+    // Draw square card and hover states for the Home quick actions.
     JButton button = new JButton() {
         @Override
         protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
             Graphics2D graphics =
                 (Graphics2D) g.create();
 
@@ -1463,37 +1628,33 @@ String iconText;
                     RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON
                 );
+                graphics.setStroke(new BasicStroke(1f));
 
-                graphics.setColor(cardColor);
+                graphics.setColor(
+                    !featured && getModel().isRollover()
+                        ? new Color(226, 239, 251)
+                        : cardColor
+                );
 
-                graphics.fillRoundRect(
+                graphics.fillRect(
                     0,
                     0,
-                    getWidth() - 1,
-                    getHeight() - 1,
-                    20,
-                    20
+                    getWidth(),
+                    getHeight()
                 );
 
                 if (!featured) {
-                    graphics.setColor(
-                        new Color(220, 229, 239)
-                    );
-
-                    graphics.drawRoundRect(
+                    graphics.setColor(new Color(220, 229, 239));
+                    graphics.drawRect(
                         0,
                         0,
                         getWidth() - 1,
-                        getHeight() - 1,
-                        20,
-                        20
+                        getHeight() - 1
                     );
                 }
             } finally {
                 graphics.dispose();
             }
-
-            super.paintComponent(g);
         }
     };
 
@@ -1504,9 +1665,11 @@ String iconText;
     button.setOpaque(false);
     button.setContentAreaFilled(false);
     button.setBorderPainted(false);
+    button.setRolloverEnabled(true);
+    button.setToolTipText(description);
 
-    // Keep a visible focus indicator for keyboard navigation.
-    button.setFocusPainted(true);
+    // The square border above is also the keyboard focus indicator.
+    button.setFocusPainted(false);
 
     button.setBorder(
         new EmptyBorder(16, 16, 16, 16)
@@ -1525,10 +1688,20 @@ String iconText;
 
     topRow.setOpaque(false);
 
-    JLabel icon = new JLabel(
-        iconText,
-        SwingConstants.CENTER
-    );
+    JLabel icon = new JLabel(iconText, SwingConstants.CENTER) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
+            g2.setColor(iconBackground);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            g2.dispose();
+            super.paintComponent(graphics);
+        }
+    };
 
     icon.setFont(
         new Font(
@@ -1539,8 +1712,7 @@ String iconText;
     );
 
     icon.setForeground(NAVY);
-    icon.setBackground(iconBackground);
-    icon.setOpaque(true);
+    icon.setOpaque(false);
 
     icon.setPreferredSize(
         new Dimension(30, 30)
