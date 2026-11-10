@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "App",
+      "request": "launch",
+      "mainClass": "App",
+      "projectName": "AccountingSystem_81611d2"
+    },
+    {
+      "type": "java",
+      "name": "App",
+      "request": "launch",
+      "mainClass": "App",
+      "projectName": "AccountingSystem_eb8bd6e"
+    },
+    {
+      "name": "Run Accounting App",
+      "type": "java",
+      "request": "launch",
+      "mainClass": "App",
+      "projectName": "AccountingSystem",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "classPaths": [
+        "${workspaceFolder}/bin",
+        "${workspaceFolder}/lib/postgresql-42.7.14.jar"
+      ]
+    }
+  ]
+}
