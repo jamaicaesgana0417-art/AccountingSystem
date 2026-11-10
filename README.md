@@ -8,25 +8,19 @@
 - PostgreSQL JDBC driver at `lib/postgresql-42.7.14.jar`.
 
 ### Steps
-
-## One-time setup
-Install a Java 17+ JDK, then run `build.bat`. It compiles the app to a Java 17-compatible `AccountingSystem.jar`.
-
-## Every open
-Run `java -jar AccountingSystem.jar` from the project folder, or double-click the jar file if your system is configured to launch Java apps.
-
 1. Download or clone the project from GitHub.
 2. Open the `AccountingSystem` project folder in Visual Studio Code. Make sure it contains `src`, `bin`, `lib`, and `.vscode`.
 3. Check that `postgresql-42.7.14.jar` is inside the `lib` folder.
-4. Ensure `javac` is available from a Java 17+ JDK on your PATH.
-5. Run `build.bat` once to regenerate `AccountingSystem.jar`.
-6. Open the **Run and Debug** panel in VS Code and start the project, or run `java -jar AccountingSystem.jar`.
-7. The Accounting System login screen should appear.
+4. Wait for the Java extension to finish building the project.
+5. Open the **Run and Debug** panel in VS Code.
+7. Select **Run Accounting App** from the launch configuration.
+8. Click the green **Start Debugging** button or press `F5`.
+9. The Accounting System login screen should appear.
 
-If you see an `UnsupportedClassVersionError`, the jar was built with a newer Java than the installed runtime. Rebuild it with `build.bat` or use a matching Java version.
+## Every open
+Double-click `AccountingSystem.jar`. No passwords or environment variables needed.
 
 ### If the App Does Not Open
-
 - Make sure Java is installed and available in your terminal.
 - Check that the PostgreSQL JDBC driver is in the correct folder.
 - Verify your Supabase connection settings and internet connection.

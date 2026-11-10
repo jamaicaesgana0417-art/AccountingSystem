@@ -4,14 +4,10 @@ import java.sql.SQLException;
 
 public class Database {
 
-    // ---- Built-in Supabase connection (no setup needed to run the app) ----
     private static final String URL =
         "jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require";
     private static final String USER = "postgres.jinrxgmbxxgbggkdwkfd";
-
-    // Paste your Supabase database password between the quotes ONCE, then rebuild.
     private static final String PASSWORD = "M3oEulFY01eXBh7J";
-    // -----------------------------------------------------------------------
 
     public static Connection connect() throws SQLException {
         if (PASSWORD.startsWith("PASTE_YOUR")) {
