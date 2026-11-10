@@ -443,17 +443,6 @@ separator.setMaximumSize(
 sideMenu.add(separator);
 sideMenu.add(Box.createVerticalStrut(10));
 
-JButton accountSettings =
-    createMenuButton("⚙   Account settings");
-
-accountSettings.addActionListener(event -> {
-    overlay.setVisible(false);
-    // Placeholder for future account-management screen.
-});
-
-sideMenu.add(accountSettings);
-sideMenu.add(Box.createVerticalStrut(6));
-
 JButton logoutButton =
     createMenuButton("↪   Log out");
 
