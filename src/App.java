@@ -1143,6 +1143,7 @@ profileMenu.add(logoutMenuItem);
 
         HomeDashboard(String username, Consumer<String> navigate) {
             this.username = username;
+            HomeFonts.initialize();
             setLayout(new BorderLayout());
             setBackground(BACKGROUND);
             setOpaque(true);
@@ -1165,14 +1166,14 @@ profileMenu.add(logoutMenuItem);
 
             JLabel heading = new JLabel("Hey, Student!");
             heading.setForeground(DARK_TEXT);
-            heading.setFont(new Font("Poppins", Font.BOLD, 30));
+            heading.setFont(HomeFonts.poppinsSemiBold(30));
             heading.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             JLabel subtitle = new JLabel(
                 "Welcome back — let’s make today count."
             );
             subtitle.setForeground(MUTED_TEXT);
-            subtitle.setFont(new Font("Poppins", Font.PLAIN, 13));
+            subtitle.setFont(HomeFonts.nunitoSansRegular(14));
             subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             JPanel hero = new JPanel(new BorderLayout(20, 0)) {
@@ -1210,13 +1211,13 @@ profileMenu.add(logoutMenuItem);
                 "YOUR ACCOUNTING JOURNEY STARTS HERE"
             );
             heroTitle.setForeground(Color.WHITE);
-            heroTitle.setFont(new Font("Poppins", Font.BOLD, 24));
+            heroTitle.setFont(HomeFonts.poppinsSemiBold(24));
 
             JLabel heroSubtitle = new JLabel(
                 "One clear entry at a time, you’re building stronger books."
             );
             heroSubtitle.setForeground(new Color(220, 232, 246));
-            heroSubtitle.setFont(new Font("Poppins", Font.PLAIN, 12));
+            heroSubtitle.setFont(HomeFonts.nunitoSansRegular(13));
 
             heroText.add(heroTitle);
             heroText.add(Box.createVerticalStrut(5));

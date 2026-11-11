@@ -1,15 +1,25 @@
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class LedgerPanel extends JPanel {
+
+    private static final Color PAGE_BG = new Color(244, 246, 255);
+    private static final Color INPUT_BG = new Color(243, 246, 255);
+    private static final Color BORDER = new Color(221, 228, 245);
+    private static final Color TEXT = new Color(31, 50, 91);
+    private static final Color MUTED = new Color(104, 120, 153);
+    private static final Color BLUE = new Color(55, 91, 255);
 
     private final JComboBox<AccountOption> accountBox =
         new JComboBox<>();
@@ -18,7 +28,7 @@ public class LedgerPanel extends JPanel {
     private final JTextField endField = new JTextField(10);
 
     private final JLabel summaryLabel =
-        new JLabel("Select an account.");
+        new JLabel("Running balances update automatically from posted journal entries.");
 
     private boolean loadingAccounts = false;
 
@@ -56,56 +66,94 @@ public class LedgerPanel extends JPanel {
         };
 
     private final JTable table = new JTable(model);
+    private final CardLayout resultsCards = new CardLayout();
+    private final JPanel resultsBody = new JPanel(resultsCards);
+    private final JLabel emptyStateTitle =
+        new JLabel("Choose an account to view its ledger");
+    private final JLabel emptyStateMessage = new JLabel(
+        "No accounts available. Add an account in Chart of Accounts to begin."
+    );
 
     public LedgerPanel() {
-        setLayout(new BorderLayout(0, 20));
-        setBackground(Color.WHITE);
+        setLayout(new BorderLayout(0, 16));
+        setBackground(PAGE_BG);
         setBorder(
-            BorderFactory.createEmptyBorder(30, 30, 30, 30)
+            BorderFactory.createEmptyBorder(30, 30, 24, 30)
         );
 
-        JLabel heading = new JLabel("General Ledger");
-        heading.setFont(new Font("Inter", Font.BOLD, 24)); //I change the font
-        heading.setForeground(new Color(15, 70, 125));
+        JLabel heading = new JLabel("GENERAL LEDGER");
+        heading.setFont(new Font("Inter", Font.BOLD, 24));
+        heading.setForeground(TEXT);
 
-        JPanel fields = new JPanel(new GridLayout(0, 2, 10, 8));
+        JLabel subtitle = new JLabel(
+            "Track each account's activity and running balance."
+        );
+        subtitle.setFont(new Font("Inter", Font.PLAIN, 11));
+        subtitle.setForeground(MUTED);
+
+        JPanel titleBlock = new JPanel();
+        titleBlock.setOpaque(false);
+        titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
+        titleBlock.add(heading);
+        titleBlock.add(Box.createVerticalStrut(7));
+        titleBlock.add(subtitle);
+
+        styleFilterInput(accountBox);
+        styleFilterInput(startField);
+        styleFilterInput(endField);
+
+        JPanel fields = new JPanel(new GridLayout(1, 3, 12, 0));
         fields.setOpaque(false);
-
-        fields.add(new JLabel("Account:"));
-        fields.add(accountBox);
-
-        fields.add(new JLabel("From (YYYY-MM-DD, optional):"));
-        fields.add(startField);
-
-        fields.add(new JLabel("To (YYYY-MM-DD, optional):"));
-        fields.add(endField);
+        fields.add(filterField("Account", accountBox));
+        fields.add(filterField("From date (optional)", dateFilter(startField)));
+        fields.add(filterField("To date (optional)", dateFilter(endField)));
 
         JButton applyButton = new JButton("Apply Filters");
         JButton clearButton = new JButton("Clear Dates");
         JButton refreshButton = new JButton("Refresh");
         JButton exportButton = new JButton("Export CSV");
+        styleActionButton(applyButton, true);
+        styleActionButton(clearButton, true);
+        styleActionButton(refreshButton, true);
+        styleActionButton(exportButton, true);
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         buttons.setOpaque(false);
         buttons.add(applyButton);
         buttons.add(clearButton);
         buttons.add(refreshButton);
         buttons.add(exportButton);
 
-        JPanel filters = new JPanel(new BorderLayout(0, 8));
-        filters.setOpaque(false);
+        JPanel filters = new JPanel(new BorderLayout(0, 12));
+        filters.setBackground(Color.WHITE);
+        filters.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1, true),
+            BorderFactory.createEmptyBorder(14, 14, 12, 14)
+        ));
         filters.add(fields, BorderLayout.CENTER);
         filters.add(buttons, BorderLayout.SOUTH);
 
-        JPanel top = new JPanel(new BorderLayout(0, 15));
+        JPanel top = new JPanel(new BorderLayout(0, 26));
         top.setOpaque(false);
-        top.add(heading, BorderLayout.NORTH);
+        top.add(titleBlock, BorderLayout.NORTH);
         top.add(filters, BorderLayout.CENTER);
 
-        table.setRowHeight(28);
+        table.setRowHeight(34);
         table.setFillsViewportHeight(true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS); //ge change nako para mo fit siya sa content sa table
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.setFont(new Font("Inter", Font.PLAIN, 10));
+        table.setForeground(TEXT);
+        table.setBackground(Color.WHITE);
+        table.setSelectionBackground(new Color(232, 238, 255));
+        table.setSelectionForeground(TEXT);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
         table.getTableHeader().setReorderingAllowed(false);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 38));
+        table.getTableHeader().setBackground(new Color(232, 238, 255));
+        table.getTableHeader().setForeground(TEXT);
+        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 9));
+        table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
         // Keep chronological order so running balances remain meaningful.
         int[] widths = {200, 85, 110, 240, 120, 120, 130, 60};
@@ -141,7 +189,27 @@ public class LedgerPanel extends JPanel {
         }
 
         add(top, BorderLayout.NORTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JScrollPane tableScrollPane = new JScrollPane(table);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setColumnHeaderView(null);
+
+        resultsBody.setBackground(Color.WHITE);
+        resultsBody.add(tableScrollPane, "table");
+        resultsBody.add(createEmptyState(), "empty");
+        resultsCards.show(resultsBody, "empty");
+
+        JPanel resultsCard = new JPanel(new BorderLayout());
+        resultsCard.setBackground(Color.WHITE);
+        resultsCard.setBorder(BorderFactory.createLineBorder(BORDER, 1, true));
+        resultsCard.add(table.getTableHeader(), BorderLayout.NORTH);
+        resultsCard.add(resultsBody, BorderLayout.CENTER);
+        resultsCard.setMinimumSize(new Dimension(0, 240));
+        add(resultsCard, BorderLayout.CENTER);
+
+        summaryLabel.setFont(new Font("Inter", Font.PLAIN, 10));
+        summaryLabel.setForeground(MUTED);
         add(summaryLabel, BorderLayout.SOUTH);
 
         accountBox.addActionListener(event -> {
@@ -165,6 +233,270 @@ public class LedgerPanel extends JPanel {
         exportButton.addActionListener(event ->
             CsvExporter.export(this, table, "general_ledger.csv")
         );
+    }
+
+    private JPanel filterField(String labelText, JComponent input) {
+        JPanel field = new JPanel(new BorderLayout(0, 6));
+        field.setOpaque(false);
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Inter", Font.PLAIN, 9));
+        label.setForeground(TEXT);
+        field.add(label, BorderLayout.NORTH);
+        field.add(input, BorderLayout.CENTER);
+        return field;
+    }
+
+    private void styleFilterInput(JComponent input) {
+        input.setFont(new Font("Inter", Font.PLAIN, 10));
+        input.setForeground(TEXT);
+        input.setBackground(INPUT_BG);
+        input.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1, true),
+            BorderFactory.createEmptyBorder(0, 10, 0, 10)
+        ));
+        input.setPreferredSize(new Dimension(200, 36));
+    }
+
+    private void styleActionButton(JButton button, boolean primary) {
+        button.setFont(new Font("Inter", Font.PLAIN, 11));
+        button.setForeground(primary ? Color.WHITE : TEXT);
+        button.setBackground(primary ? BLUE : Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        if (!primary) {
+            button.setContentAreaFilled(false);
+        }
+    }
+
+    private JComponent dateFilter(JTextField dateField) {
+        JPanel dateInput = new JPanel(new BorderLayout(6, 0));
+        dateInput.setOpaque(false);
+
+        JButton calendarButton = new JButton(new CalendarIcon());
+        calendarButton.setToolTipText("Choose date");
+        calendarButton.setForeground(TEXT);
+        calendarButton.setBackground(INPUT_BG);
+        calendarButton.setFocusPainted(false);
+        calendarButton.setCursor(
+            Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
+        calendarButton.setPreferredSize(new Dimension(36, 36));
+
+        Border buttonBorder = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1, true),
+            BorderFactory.createEmptyBorder(5, 7, 5, 7)
+        );
+        calendarButton.setBorder(buttonBorder);
+        addCalendarHover(calendarButton, INPUT_BG, buttonBorder);
+        calendarButton.addActionListener(
+            event -> showDatePicker(dateField, calendarButton)
+        );
+
+        dateInput.add(dateField, BorderLayout.CENTER);
+        dateInput.add(calendarButton, BorderLayout.EAST);
+        return dateInput;
+    }
+
+    private void showDatePicker(JTextField dateField, JButton calendarButton) {
+        LocalDate selectedDate;
+        try {
+            selectedDate = LocalDate.parse(dateField.getText().trim());
+        } catch (DateTimeParseException exception) {
+            selectedDate = LocalDate.now();
+        }
+
+        LocalDate[] activeDate = {selectedDate};
+        YearMonth[] displayedMonth = {YearMonth.from(selectedDate)};
+
+        JPopupMenu popup = new JPopupMenu();
+        JPanel calendar = new JPanel(new BorderLayout(0, 8));
+        calendar.setBackground(Color.WHITE);
+        calendar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel monthLabel = new JLabel("", SwingConstants.CENTER);
+        monthLabel.setFont(new Font("Inter", Font.BOLD, 12));
+        monthLabel.setForeground(TEXT);
+
+        JButton previousButton = new JButton("<");
+        JButton nextButton = new JButton(">");
+        styleCalendarNavigationButton(previousButton);
+        styleCalendarNavigationButton(nextButton);
+
+        JPanel monthHeader = new JPanel(new BorderLayout());
+        monthHeader.setOpaque(false);
+        monthHeader.add(previousButton, BorderLayout.WEST);
+        monthHeader.add(monthLabel, BorderLayout.CENTER);
+        monthHeader.add(nextButton, BorderLayout.EAST);
+
+        JPanel daysGrid = new JPanel(new GridLayout(7, 7, 2, 2));
+        daysGrid.setOpaque(false);
+        calendar.add(monthHeader, BorderLayout.NORTH);
+        calendar.add(daysGrid, BorderLayout.CENTER);
+
+        Runnable[] refreshCalendar = new Runnable[1];
+        refreshCalendar[0] = () -> {
+            monthLabel.setText(displayedMonth[0].format(
+                DateTimeFormatter.ofPattern("MMMM yyyy")
+            ));
+            daysGrid.removeAll();
+
+            String[] weekdays = {"S", "M", "T", "W", "T", "F", "S"};
+            for (String weekday : weekdays) {
+                JLabel weekdayLabel = new JLabel(
+                    weekday,
+                    SwingConstants.CENTER
+                );
+                weekdayLabel.setFont(new Font("Inter", Font.BOLD, 9));
+                weekdayLabel.setForeground(MUTED);
+                daysGrid.add(weekdayLabel);
+            }
+
+            int firstDay = displayedMonth[0].atDay(1)
+                .getDayOfWeek().getValue() % 7;
+            int daysInMonth = displayedMonth[0].lengthOfMonth();
+
+            for (int cell = 0; cell < 42; cell++) {
+                int day = cell - firstDay + 1;
+                if (day < 1 || day > daysInMonth) {
+                    daysGrid.add(new JLabel(""));
+                    continue;
+                }
+
+                LocalDate date = displayedMonth[0].atDay(day);
+                JButton dayButton = new JButton(Integer.toString(day));
+                dayButton.setFont(new Font("Inter", Font.PLAIN, 10));
+                dayButton.setForeground(TEXT);
+                Color dayBackground = date.equals(activeDate[0])
+                    ? INPUT_BG : Color.WHITE;
+                dayButton.setBackground(dayBackground);
+                dayButton.setFocusPainted(false);
+                dayButton.setCursor(
+                    Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                );
+
+                Border dayBorder = BorderFactory.createLineBorder(
+                    date.equals(activeDate[0]) ? BLUE : BORDER
+                );
+                dayButton.setBorder(dayBorder);
+                addCalendarHover(dayButton, dayBackground, dayBorder);
+                dayButton.addActionListener(event -> {
+                    dateField.setText(date.toString());
+                    popup.setVisible(false);
+                });
+                daysGrid.add(dayButton);
+            }
+
+            daysGrid.revalidate();
+            daysGrid.repaint();
+        };
+
+        previousButton.addActionListener(event -> {
+            displayedMonth[0] = displayedMonth[0].minusMonths(1);
+            refreshCalendar[0].run();
+        });
+        nextButton.addActionListener(event -> {
+            displayedMonth[0] = displayedMonth[0].plusMonths(1);
+            refreshCalendar[0].run();
+        });
+
+        refreshCalendar[0].run();
+        popup.add(calendar);
+        popup.setPopupSize(280, 280);
+        popup.show(calendarButton, 0, calendarButton.getHeight());
+    }
+
+    private void styleCalendarNavigationButton(JButton button) {
+        button.setFont(new Font("Inter", Font.PLAIN, 12));
+        button.setForeground(TEXT);
+        button.setBackground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        Border buttonBorder = BorderFactory.createEmptyBorder(4, 8, 4, 8);
+        button.setBorder(buttonBorder);
+        addCalendarHover(button, Color.WHITE, buttonBorder);
+    }
+
+    private void addCalendarHover(
+        JButton button,
+        Color normalBackground,
+        Border normalBorder
+    ) {
+        Color hoverBackground = new Color(232, 238, 255);
+        button.setRolloverEnabled(true);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
+        button.getModel().addChangeListener(event -> {
+            boolean hovered = button.getModel().isRollover();
+            button.setBackground(hovered ? hoverBackground : normalBackground);
+            button.setBorder(hovered
+                ? BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BLUE, 1, true),
+                    BorderFactory.createEmptyBorder(4, 6, 4, 6)
+                )
+                : normalBorder
+            );
+        });
+    }
+
+    private JPanel createEmptyState() {
+        JPanel emptyState = new JPanel();
+        emptyState.setBackground(Color.WHITE);
+        emptyState.setLayout(new BoxLayout(emptyState, BoxLayout.Y_AXIS));
+
+        JLabel icon = new JLabel("\u25A4");
+        icon.setFont(new Font("Inter", Font.PLAIN, 24));
+        icon.setForeground(BLUE);
+        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        emptyStateTitle.setFont(new Font("Inter", Font.BOLD, 14));
+        emptyStateTitle.setForeground(TEXT);
+        emptyStateTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyStateMessage.setFont(new Font("Inter", Font.PLAIN, 9));
+        emptyStateMessage.setForeground(MUTED);
+        emptyStateMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        emptyState.add(Box.createVerticalGlue());
+        emptyState.add(icon);
+        emptyState.add(Box.createVerticalStrut(12));
+        emptyState.add(emptyStateTitle);
+        emptyState.add(Box.createVerticalStrut(8));
+        emptyState.add(emptyStateMessage);
+        emptyState.add(Box.createVerticalGlue());
+        return emptyState;
+    }
+
+    private static class CalendarIcon implements Icon {
+        @Override
+        public int getIconWidth() {
+            return 20;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 20;
+        }
+
+        @Override
+        public void paintIcon(
+            Component component,
+            Graphics graphics,
+            int x,
+            int y
+        ) {
+            Graphics2D graphics2D = (Graphics2D) graphics.create();
+            graphics2D.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
+            graphics2D.setColor(TEXT);
+            graphics2D.drawRoundRect(x + 2, y + 4, 16, 14, 2, 2);
+            graphics2D.drawLine(x + 2, y + 8, x + 18, y + 8);
+            graphics2D.drawLine(x + 6, y + 2, x + 6, y + 6);
+            graphics2D.drawLine(x + 14, y + 2, x + 14, y + 6);
+            graphics2D.dispose();
+        }
     }
 
     // App.java already calls this when opening General Ledger.
@@ -236,7 +568,11 @@ public class LedgerPanel extends JPanel {
             (AccountOption) accountBox.getSelectedItem();
 
         if (account == null) {
-            invalidateResults("No accounts available.");
+            model.setRowCount(0);
+            showEmptyResults(
+                "Choose an account to view its ledger",
+                "No accounts available. Add an account in Chart of Accounts to begin."
+            );
             return;
         }
 
@@ -389,29 +725,32 @@ public class LedgerPanel extends JPanel {
             side(runningBalance)
         });
 
+        resultsCards.show(resultsBody, "table");
+
         String normalSide =
             ChartOfAccounts.isDebitNormal(account.type)
                 ? "Debit"
                 : "Credit";
 
-        summaryLabel.setForeground(Color.DARK_GRAY);
+        summaryLabel.setForeground(MUTED);
         summaryLabel.setText(
-            "<html>Account: " + account.code
+            "Running balances update automatically from posted journal entries."
+        );
+        summaryLabel.setToolTipText(
+            "Account: " + account.code + " - " + account.name
                 + " | Type: " + account.type
                 + " | Normal side: " + normalSide
-                + "<br>Period: "
+                + " | Period: "
                 + (start == null ? "Beginning" : start.toString())
                 + " to "
                 + (end == null ? "Latest entry" : end.toString())
-                + "<br>Opening: PHP " + opening.abs().toPlainString()
+                + " | Opening: PHP " + opening.abs().toPlainString()
                 + " " + side(opening)
-                + "<br>Period Debit: PHP " + periodDebit.toPlainString()
-                + " | Period Credit: PHP " + periodCredit.toPlainString()
-                + "<br>Closing: PHP "
-                + runningBalance.abs().toPlainString()
+                + " | Period debit: PHP " + periodDebit.toPlainString()
+                + " | Period credit: PHP " + periodCredit.toPlainString()
+                + " | Closing: PHP " + runningBalance.abs().toPlainString()
                 + " " + side(runningBalance)
                 + " | Entries: " + entries.size()
-                + "</html>"
         );
     }
 
@@ -438,8 +777,18 @@ public class LedgerPanel extends JPanel {
 
     private void invalidateResults(String message) {
         model.setRowCount(0);
-        summaryLabel.setText(message);
-        summaryLabel.setForeground(Color.RED);
+        summaryLabel.setText(
+            "Running balances update automatically from posted journal entries."
+        );
+        summaryLabel.setToolTipText(message);
+        summaryLabel.setForeground(MUTED);
+        showEmptyResults("Results unavailable", message);
+    }
+
+    private void showEmptyResults(String title, String message) {
+        emptyStateTitle.setText(title);
+        emptyStateMessage.setText(message);
+        resultsCards.show(resultsBody, "empty");
     }
 
     private void showWarning(String message) {

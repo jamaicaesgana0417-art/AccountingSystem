@@ -8,37 +8,58 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.*;
+import javax.swing.border.Border;
 
 /** Two-column balance sheet populated from posted journal entries. */
 public class BalanceSheetPanel extends JPanel {
-    private static final Color LINE = new Color(190, 194, 199);
+    private static final Color PAGE_BG = new Color(244, 246, 255);
+    private static final Color BORDER = new Color(221, 228, 245);
+    private static final Color TEXT = new Color(31, 50, 91);
+    private static final Color MUTED = new Color(104, 120, 153);
+    private static final Color BLUE = new Color(55, 91, 255);
 
     private final DefaultTableModel assets = reportModel("Assets");
     private final DefaultTableModel other = reportModel("Liabilities & Equity");
     private final JTable left = reportTable(assets);
     private final JTable right = reportTable(other);
     private final JLabel status = new JLabel("Open the report to load balances.");
-    private final JButton options = new JButton("Options ▾");
+    private final JButton options = new JButton("Options");
     private LocalDate reportDate = LocalDate.now();
     private LocalDate loadedDate;
 
     public BalanceSheetPanel() {
-        setLayout(new BorderLayout(0, 12));
-        setBackground(Color.WHITE);
-        setBorder(BorderFactory.createEmptyBorder(16, 16, 12, 16));
+        setLayout(new BorderLayout(0, 18));
+        setBackground(PAGE_BG);
+        setBorder(BorderFactory.createEmptyBorder(30, 30, 24, 30));
 
-        JLabel heading = new JLabel("Balance Sheet");
-        heading.setFont(new Font("Arial", Font.BOLD, 18));
-        heading.setForeground(new Color(35, 38, 43));
+        JLabel heading = new JLabel("BALANCE SHEET");
+        heading.setFont(new Font("Inter", Font.BOLD, 24));
+        heading.setForeground(TEXT);
+
+        JLabel subtitle = new JLabel(
+            "Review assets, liabilities, and equity as of a selected date."
+        );
+        subtitle.setFont(new Font("Inter", Font.PLAIN, 11));
+        subtitle.setForeground(MUTED);
+
+        JPanel titleBlock = new JPanel();
+        titleBlock.setOpaque(false);
+        titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
+        titleBlock.add(heading);
+        titleBlock.add(Box.createVerticalStrut(7));
+        titleBlock.add(subtitle);
+
         options.setFocusPainted(false);
-        options.setFont(new Font("Arial", Font.PLAIN, 12));
-        options.setBackground(new Color(37, 91, 184));
+        options.setFont(new Font("Inter", Font.PLAIN, 11));
+        options.setBackground(BLUE);
         options.setForeground(Color.WHITE);
+        options.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
+        options.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         options.addActionListener(event -> showOptions());
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        header.add(heading, BorderLayout.WEST);
+        header.add(titleBlock, BorderLayout.WEST);
         header.add(options, BorderLayout.EAST);
 
         JPanel columns = new JPanel(new GridLayout(1, 2, 14, 0));
@@ -46,7 +67,8 @@ public class BalanceSheetPanel extends JPanel {
         columns.add(section("Assets", left));
         columns.add(section("Liabilities & Equity", right));
 
-        status.setFont(new Font("Arial", Font.PLAIN, 12));
+        status.setFont(new Font("Inter", Font.PLAIN, 10));
+        status.setForeground(MUTED);
         add(header, BorderLayout.NORTH);
         add(columns, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
@@ -54,21 +76,29 @@ public class BalanceSheetPanel extends JPanel {
 
     private static JPanel section(String title, JTable table) {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setOpaque(false);
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1, true),
+            BorderFactory.createEmptyBorder(14, 14, 14, 14)
+        ));
 
         JLabel label = new JLabel(title);
-        label.setFont(new Font("Arial", Font.BOLD, 13));
-        label.setForeground(new Color(35, 38, 43));
+        label.setFont(new Font("Inter", Font.BOLD, 12));
+        label.setForeground(TEXT);
         panel.add(label, BorderLayout.NORTH);
 
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createLineBorder(LINE));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Color.WHITE);
         panel.add(scroll, BorderLayout.CENTER);
         return panel;
     }
 
     private static DefaultTableModel reportModel(String name) {
-        return new DefaultTableModel(new String[]{name, "Amount"}, 0) {
+        return new DefaultTableModel(
+            new String[]{name, "Debit (PHP)", "Credit (PHP)"},
+            0
+        ) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -76,30 +106,33 @@ public class BalanceSheetPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                return column == 1 ? BigDecimal.class : String.class;
+                return column == 1 || column == 2
+                    ? BigDecimal.class : String.class;
             }
         };
     }
 
     private static JTable reportTable(DefaultTableModel model) {
         JTable table = new JTable(model);
-        table.setFont(new Font("Inter", Font.PLAIN, 13)); //I change the font
-        table.setRowHeight(28);
+        table.setFont(new Font("Inter", Font.PLAIN, 10));
+        table.setForeground(TEXT);
+        table.setBackground(Color.WHITE);
+        table.setRowHeight(32);
         table.setFillsViewportHeight(true);
-        table.setShowVerticalLines(true);
-        table.setShowHorizontalLines(true);
-        table.setGridColor(new Color(232, 235, 238));
-        table.setIntercellSpacing(new Dimension(1, 1));
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setSelectionBackground(new Color(220, 232, 247));
-        table.setSelectionForeground(Color.BLACK);
+        table.setSelectionBackground(new Color(232, 238, 255));
+        table.setSelectionForeground(TEXT);
         table.getTableHeader().setReorderingAllowed(false);
-        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 13)); //I change the font
-        table.getTableHeader().setBackground(new Color(222, 225, 230));
-        table.getTableHeader().setForeground(Color.DARK_GRAY);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 29));
-        table.getColumnModel().getColumn(0).setPreferredWidth(270);
-        table.getColumnModel().getColumn(1).setPreferredWidth(160);
+        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 9));
+        table.getTableHeader().setBackground(new Color(232, 238, 255));
+        table.getTableHeader().setForeground(TEXT);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 36));
+        table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
+        table.getColumnModel().getColumn(0).setPreferredWidth(230);
+        table.getColumnModel().getColumn(1).setPreferredWidth(110);
+        table.getColumnModel().getColumn(2).setPreferredWidth(110);
 
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
@@ -112,18 +145,21 @@ public class BalanceSheetPanel extends JPanel {
                     ? "" : String.valueOf(source.getValueAt(row, 0));
                 boolean total = label.startsWith("Total ");
                 setFont(source.getFont().deriveFont(total ? Font.BOLD : Font.PLAIN));
-                setHorizontalAlignment(column == 1 ? SwingConstants.RIGHT : SwingConstants.LEFT);
+                setHorizontalAlignment(
+                    column == 0 ? SwingConstants.LEFT : SwingConstants.RIGHT
+                );
                 if (selected) {
                     setForeground(source.getSelectionForeground());
                 } else {
-                    setForeground(Color.BLACK);
+                    setForeground(TEXT);
                 }
                 return this;
             }
         };
 
-        table.getColumnModel().getColumn(0).setCellRenderer(renderer);
-        table.getColumnModel().getColumn(1).setCellRenderer(renderer);
+        for (int column = 0; column < 3; column++) {
+            table.getColumnModel().getColumn(column).setCellRenderer(renderer);
+        }
         return table;
     }
 
@@ -184,14 +220,19 @@ public class BalanceSheetPanel extends JPanel {
                     case "ASSET":
                     case "CONTRA-ASSET":
                         if (net.signum() != 0) {
-                            assets.addRow(new Object[]{account.name, net});
+                            addAmountRow(assets, account.name, net, true);
                         }
                         totalAssets = totalAssets.add(net);
                         break;
 
                     case "LIABILITY":
                         if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
+                            addAmountRow(
+                                other,
+                                account.name,
+                                net.negate(),
+                                false
+                            );
                         }
                         liabilities = liabilities.add(net.negate());
                         break;
@@ -199,21 +240,31 @@ public class BalanceSheetPanel extends JPanel {
                     case "EQUITY":
                     case "CONTRA-EQUITY":
                         if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
+                            addAmountRow(
+                                other,
+                                account.name,
+                                net.negate(),
+                                false
+                            );
                         }
                         equity = equity.add(net.negate());
                         break;
 
                     case "REVENUE":
                         if (net.signum() != 0) {
-                            other.addRow(new Object[]{account.name, net.negate()});
+                            addAmountRow(
+                                other,
+                                account.name,
+                                net.negate(),
+                                false
+                            );
                         }
                         earnings = earnings.add(net.negate());
                         break;
 
                     case "EXPENSE":
                         if (net.signum() != 0) {
-                            assets.addRow(new Object[]{account.name, net});
+                            addAmountRow(assets, account.name, net, true);
                         }
                         earnings = earnings.add(net);
                         break;
@@ -226,10 +277,15 @@ public class BalanceSheetPanel extends JPanel {
             }
 
             BigDecimal totalOther = liabilities.add(equity).add(earnings);
-            assets.addRow(new Object[]{"", null});
-            assets.addRow(new Object[]{"Total Assets", totalAssets});
-            other.addRow(new Object[]{"", null});
-            other.addRow(new Object[]{"Total Liabilities & Equity", totalOther});
+            assets.addRow(new Object[]{"", null, null});
+            addAmountRow(assets, "Total Assets", totalAssets, true);
+            other.addRow(new Object[]{"", null, null});
+            addAmountRow(
+                other,
+                "Total Liabilities & Equity",
+                totalOther,
+                false
+            );
 
             loadedDate = reportDate;
             BigDecimal difference = totalAssets.subtract(totalOther);
@@ -263,7 +319,9 @@ public class BalanceSheetPanel extends JPanel {
         }
 
         DefaultTableModel output = new DefaultTableModel(
-            new String[]{"As of", "Section", "Account", "Amount (PHP)"},
+            new String[]{
+                "As of", "Section", "Account", "Debit (PHP)", "Credit (PHP)"
+            },
             0
         );
         copyRows(output, assets, "Assets");
@@ -289,9 +347,24 @@ public class BalanceSheetPanel extends JPanel {
                 loadedDate.toString(),
                 section,
                 label,
-                source.getValueAt(row, 1)
+                source.getValueAt(row, 1),
+                source.getValueAt(row, 2)
             });
         }
+    }
+
+    private void addAmountRow(
+        DefaultTableModel model,
+        String label,
+        BigDecimal amount,
+        boolean positiveIsDebit
+    ) {
+        boolean debitSide = (amount.signum() > 0) == positiveIsDebit;
+        BigDecimal debit = amount.signum() == 0 || !debitSide
+            ? null : amount.abs();
+        BigDecimal credit = amount.signum() == 0 || debitSide
+            ? null : amount.abs();
+        model.addRow(new Object[]{label, debit, credit});
     }
 
     private List<AccountSummary> loadAccountSummaries(LocalDate asOf) throws SQLException {
