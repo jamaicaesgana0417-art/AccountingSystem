@@ -32,8 +32,8 @@ public class JournalPanel extends JPanel {
     private final DefaultTableModel model =
         new DefaultTableModel(
             new String[] {
-                "Reference", "Date", "Description",
-                "Account", "Debit (PHP)", "Credit (PHP)"
+                "Date", "Description", "Account",
+                "Debit (PHP)", "Credit (PHP)"
             },
             0
         ) {
@@ -44,11 +44,7 @@ public class JournalPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 0) {
-                    return Long.class;
-                }
-
-                if (column == 4 || column == 5) {
+                if (column == 3 || column == 4) {
                     return BigDecimal.class;
                 }
 
@@ -137,8 +133,10 @@ public class JournalPanel extends JPanel {
         table.setBackground(Color.WHITE);
         table.setSelectionBackground(new Color(232, 238, 255));
         table.setSelectionForeground(TEXT);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(true);
+        table.setGridColor(BORDER);
+        table.setIntercellSpacing(new Dimension(1, 1));
         table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
         table.getTableHeader().setBackground(new Color(232, 238, 255));
@@ -147,7 +145,7 @@ public class JournalPanel extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
         // Keep chronological order and matching journal lines together.
-        int[] widths = {100, 125, 245, 215, 145, 145};
+        int[] widths = {125, 245, 215, 145, 145};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -175,10 +173,10 @@ public class JournalPanel extends JPanel {
 
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        table.getColumnModel().getColumn(4)
+        table.getColumnModel().getColumn(3)
             .setCellRenderer(moneyRenderer);
 
-        table.getColumnModel().getColumn(5)
+        table.getColumnModel().getColumn(4)
             .setCellRenderer(moneyRenderer);
 
         add(top, BorderLayout.NORTH);
@@ -529,10 +527,9 @@ public class JournalPanel extends JPanel {
 
         StringBuilder sql = new StringBuilder("""
             SELECT
-                t.id AS transaction_id,
                 t.transaction_date,
                 t.description,
-                a.code || ' - ' || a.name AS account_name,
+                a.name AS account_name,
                 j.debit_centavos,
                 j.credit_centavos
             FROM journal_lines j
@@ -615,7 +612,6 @@ public class JournalPanel extends JPanel {
                     );
 
                     rows.add(new Object[] {
-                        result.getLong("transaction_id"),
                         result.getString("transaction_date"),
                         result.getString("description"),
                         result.getString("account_name"),

@@ -56,8 +56,10 @@ public class AccountsPanel extends JPanel {
         table.setBackground(Color.WHITE);
         table.setSelectionBackground(new Color(232, 238, 255));
         table.setSelectionForeground(TEXT);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(true);
+        table.setGridColor(BORDER);
+        table.setIntercellSpacing(new Dimension(1, 1));
         table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
         table.getTableHeader().setBackground(new Color(232, 238, 255));

@@ -156,8 +156,10 @@ public class TransactionsPanel extends JPanel {
         table.setBackground(Color.WHITE);
         table.setSelectionBackground(new Color(232, 238, 255));
         table.setSelectionForeground(TEXT);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(true);
+        table.setGridColor(BORDER);
+        table.setIntercellSpacing(new Dimension(1, 1));
         table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
         table.getTableHeader().setBackground(new Color(232, 238, 255));
@@ -525,8 +527,7 @@ public class TransactionsPanel extends JPanel {
             while (result.next()) {
                 accounts.add(new AccountOption(
                     result.getInt("id"),
-                    result.getString("code")
-                        + " - " + result.getString("name")
+                    result.getString("name")
                 ));
             }
             }
@@ -602,8 +603,8 @@ public class TransactionsPanel extends JPanel {
                 t.id,
                 t.transaction_date,
                 t.description,
-                da.code || ' - ' || da.name AS debit_account,
-                ca.code || ' - ' || ca.name AS credit_account,
+                da.name AS debit_account,
+                ca.name AS credit_account,
                 d.debit_centavos AS amount_centavos
             FROM transactions t
             JOIN journal_lines d

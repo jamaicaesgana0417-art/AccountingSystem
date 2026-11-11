@@ -36,7 +36,6 @@ public class LedgerPanel extends JPanel {
         new DefaultTableModel(
             new String[] {
                 "Account",
-                "Reference",
                 "Date",
                 "Description",
                 "Debit (PHP)",
@@ -53,11 +52,7 @@ public class LedgerPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 1) {
-                    return Long.class;
-                }
-
-                if (column >= 4 && column <= 6) {
+                if (column >= 3 && column <= 5) {
                     return BigDecimal.class;
                 }
 
@@ -146,8 +141,10 @@ public class LedgerPanel extends JPanel {
         table.setBackground(Color.WHITE);
         table.setSelectionBackground(new Color(232, 238, 255));
         table.setSelectionForeground(TEXT);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(true);
+        table.setGridColor(BORDER);
+        table.setIntercellSpacing(new Dimension(1, 1));
         table.getTableHeader().setReorderingAllowed(false);
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
         table.getTableHeader().setBackground(new Color(232, 238, 255));
@@ -156,7 +153,7 @@ public class LedgerPanel extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
         // Keep chronological order so running balances remain meaningful.
-        int[] widths = {200, 85, 110, 240, 120, 120, 130, 60};
+        int[] widths = {200, 110, 240, 120, 120, 130, 60};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -182,7 +179,7 @@ public class LedgerPanel extends JPanel {
 
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        for (int column = 4; column <= 6; column++) {
+        for (int column = 3; column <= 5; column++) {
             table.getColumnModel()
                 .getColumn(column)
                 .setCellRenderer(moneyRenderer);
@@ -667,7 +664,6 @@ public class LedgerPanel extends JPanel {
 
                     entries.add(new Object[] {
                         account.label(),
-                        result.getLong("transaction_id"),
                         entryDate.toString(),
                         result.getString("description"),
                         debit,
@@ -696,7 +692,6 @@ public class LedgerPanel extends JPanel {
         // Include opening balance in the table and CSV.
         model.addRow(new Object[] {
             account.label(),
-            null,
             start == null ? "" : start.toString(),
             start == null
                 ? "Opening balance before first recorded entry"
@@ -714,7 +709,6 @@ public class LedgerPanel extends JPanel {
         // Include closing balance in the table and CSV.
         model.addRow(new Object[] {
             account.label(),
-            null,
             end == null ? "" : end.toString(),
             end == null
                 ? "Closing balance through latest recorded entry"
@@ -737,7 +731,7 @@ public class LedgerPanel extends JPanel {
             "Running balances update automatically from posted journal entries."
         );
         summaryLabel.setToolTipText(
-            "Account: " + account.code + " - " + account.name
+            "Account: " + account.name
                 + " | Type: " + account.type
                 + " | Normal side: " + normalSide
                 + " | Period: "
@@ -829,7 +823,7 @@ public class LedgerPanel extends JPanel {
         }
 
         String label() {
-            return code + " - " + name;
+            return name;
         }
 
         @Override
