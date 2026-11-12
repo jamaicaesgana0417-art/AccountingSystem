@@ -41,12 +41,11 @@ public class TransactionsPanel extends JPanel {
     private final DefaultTableModel model =
         new DefaultTableModel(
             new String[] {
-                "Reference",
                 "Date",
                 "Description",
                 "Debit Account",
                 "Credit Account",
-                "Amount (PHP)"
+                "Amount (₱)"
             },
             0
         ) {
@@ -57,11 +56,7 @@ public class TransactionsPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 0) {
-                    return Long.class;
-                }
-
-                if (column == 5) {
+                if (column == 4) {
                     return BigDecimal.class;
                 }
 
@@ -174,7 +169,7 @@ public class TransactionsPanel extends JPanel {
         sorter.setSortsOnUpdates(true);
         table.setRowSorter(sorter);
 
-        int[] widths = {105, 155, 291, 205, 205, 160};
+        int[] widths = {155, 291, 205, 205, 160};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -188,7 +183,7 @@ public class TransactionsPanel extends JPanel {
                 protected void setValue(Object value) {
                     if (value instanceof BigDecimal) {
                         setText(
-                            ((BigDecimal) value)
+                            "₱ " + ((BigDecimal) value)
                                 .setScale(2)
                                 .toPlainString()
                         );
@@ -201,7 +196,7 @@ public class TransactionsPanel extends JPanel {
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
         table.getColumnModel()
-            .getColumn(5)
+            .getColumn(4)
             .setCellRenderer(moneyRenderer);
 
         add(top, BorderLayout.NORTH);
@@ -679,7 +674,6 @@ public class TransactionsPanel extends JPanel {
                     );
 
                     rows.add(new Object[] {
-                        result.getLong("id"),
                         result.getString("transaction_date"),
                         result.getString("description"),
                         result.getString("debit_account"),
@@ -714,7 +708,7 @@ public class TransactionsPanel extends JPanel {
         countLabel.setForeground(MUTED);
         countLabel.setText(
             "Displayed transactions: " + rows.size()
-                + " | Total amount: PHP " + total.toPlainString()
+                + " | Total amount: ₱ " + total.toPlainString()
         );
     }
 

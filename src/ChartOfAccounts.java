@@ -1,7 +1,6 @@
 import java.sql.*;
 import java.util.*;
 
-/** The fixed chart of accounts. Every user gets their own copy of these. */
 public final class ChartOfAccounts {
 
     public static final class Entry {

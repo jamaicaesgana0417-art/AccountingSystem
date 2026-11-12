@@ -26,14 +26,14 @@ public class JournalPanel extends JPanel {
     private final JTextField endField = new JTextField(10);
 
     private final JLabel linesLabel = new JLabel("Displayed lines: 0");
-    private final JLabel debitTotalLabel = new JLabel("Total debit: PHP 0.00");
-    private final JLabel creditTotalLabel = new JLabel("Total credit: PHP 0.00");
+    private final JLabel debitTotalLabel = new JLabel("Total debit: ₱ 0.00");
+    private final JLabel creditTotalLabel = new JLabel("Total credit: ₱ 0.00");
 
     private final DefaultTableModel model =
         new DefaultTableModel(
             new String[] {
                 "Date", "Description", "Account",
-                "Debit (PHP)", "Credit (PHP)"
+                "Debit (₱)", "Credit (₱)"
             },
             0
         ) {
@@ -104,12 +104,18 @@ public class JournalPanel extends JPanel {
         styleActionButton(refreshButton, true);
         styleActionButton(exportButton, true);
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel filterButtons = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 8, 0)
+        );
+        filterButtons.setOpaque(false);
+        filterButtons.add(applyButton);
+        filterButtons.add(clearButton);
+        filterButtons.add(exportButton);
+
+        JPanel buttons = new JPanel(new BorderLayout());
         buttons.setOpaque(false);
-        buttons.add(applyButton);
-        buttons.add(clearButton);
-        buttons.add(refreshButton);
-        buttons.add(exportButton);
+        buttons.add(filterButtons, BorderLayout.WEST);
+        buttons.add(refreshButton, BorderLayout.EAST);
 
         JPanel filters = new JPanel(new BorderLayout(0, 12));
         filters.setBackground(Color.WHITE);
@@ -153,7 +159,7 @@ public class JournalPanel extends JPanel {
                 .setPreferredWidth(widths[i]);
         }
 
-        DefaultTableCellRenderer moneyRenderer =
+        DefaultTableCellRenderer journalRowRenderer =
             new DefaultTableCellRenderer() {
                 @Override
                 protected void setValue(Object value) {
@@ -163,21 +169,58 @@ public class JournalPanel extends JPanel {
                         setText(
                             amount.signum() == 0
                                 ? ""
-                                : amount.setScale(2).toPlainString()
+                                : "₱ " + amount.setScale(2).toPlainString()
                         );
                     } else {
                         super.setValue(value);
                     }
                 }
+
+                @Override
+                public Component getTableCellRendererComponent(
+                    JTable source,
+                    Object value,
+                    boolean selected,
+                    boolean focused,
+                    int row,
+                    int column
+                ) {
+                    super.getTableCellRendererComponent(
+                        source,
+                        value,
+                        selected,
+                        focused,
+                        row,
+                        column
+                    );
+
+                    Object creditValue = source.getValueAt(row, 4);
+                    boolean creditLine = creditValue instanceof BigDecimal
+                        && ((BigDecimal) creditValue).signum() > 0;
+
+                    setHorizontalAlignment(
+                        column >= 3
+                            ? SwingConstants.RIGHT
+                            : SwingConstants.LEFT
+                    );
+                    setBackground(selected
+                        ? source.getSelectionBackground()
+                        : creditLine ? new Color(239, 246, 255) : Color.WHITE
+                    );
+                    setForeground(selected
+                        ? source.getSelectionForeground()
+                        : TEXT
+                    );
+                    setOpaque(true);
+                    return this;
+                }
             };
 
-        moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
-
-        table.getColumnModel().getColumn(3)
-            .setCellRenderer(moneyRenderer);
-
-        table.getColumnModel().getColumn(4)
-            .setCellRenderer(moneyRenderer);
+        for (int column = 0; column < table.getColumnCount(); column++) {
+            table.getColumnModel()
+                .getColumn(column)
+                .setCellRenderer(journalRowRenderer);
+        }
 
         add(top, BorderLayout.NORTH);
 
@@ -527,6 +570,7 @@ public class JournalPanel extends JPanel {
 
         StringBuilder sql = new StringBuilder("""
             SELECT
+                t.id AS transaction_id,
                 t.transaction_date,
                 t.description,
                 a.name AS account_name,
@@ -591,6 +635,7 @@ public class JournalPanel extends JPanel {
         List<Object[]> rows = new ArrayList<>();
         BigDecimal totalDebit = new BigDecimal("0.00");
         BigDecimal totalCredit = new BigDecimal("0.00");
+        Long previousTransactionId = null;
 
         try (
             Connection connection = Database.connect();
@@ -603,6 +648,9 @@ public class JournalPanel extends JPanel {
 
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
+                    long transactionId = result.getLong("transaction_id");
+                    boolean firstLine = previousTransactionId == null
+                        || previousTransactionId != transactionId;
                     BigDecimal debit = BigDecimal.valueOf(
                         result.getLong("debit_centavos"), 2
                     );
@@ -612,8 +660,9 @@ public class JournalPanel extends JPanel {
                     );
 
                     rows.add(new Object[] {
-                        result.getString("transaction_date"),
-                        result.getString("description"),
+                        firstLine
+                            ? result.getString("transaction_date") : "",
+                        firstLine ? result.getString("description") : "",
                         result.getString("account_name"),
                         debit,
                         credit
@@ -621,6 +670,7 @@ public class JournalPanel extends JPanel {
 
                     totalDebit = totalDebit.add(debit);
                     totalCredit = totalCredit.add(credit);
+                    previousTransactionId = transactionId;
                 }
             }
 
@@ -647,10 +697,10 @@ public class JournalPanel extends JPanel {
         boolean balanced = totalDebit.compareTo(totalCredit) == 0;
         linesLabel.setText("Displayed lines: " + rows.size());
         debitTotalLabel.setText(
-            "Total debit: PHP " + totalDebit.toPlainString()
+            "Total debit: ₱ " + totalDebit.toPlainString()
         );
         creditTotalLabel.setText(
-            "Total credit: PHP " + totalCredit.toPlainString()
+            "Total credit: ₱ " + totalCredit.toPlainString()
         );
 
         Color totalsColor = balanced ? TEXT : Color.RED;

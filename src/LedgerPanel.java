@@ -35,13 +35,12 @@ public class LedgerPanel extends JPanel {
     private final DefaultTableModel model =
         new DefaultTableModel(
             new String[] {
-                "Account",
                 "Date",
                 "Description",
-                "Debit (PHP)",
-                "Credit (PHP)",
-                "Balance (PHP)",
-                "Side"
+                "Debit Account",
+                "Credit Account",
+                "Amount",
+                "Balance",
             },
             0
         ) {
@@ -52,7 +51,7 @@ public class LedgerPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column >= 3 && column <= 5) {
+                if (column >= 4) {
                     return BigDecimal.class;
                 }
 
@@ -104,7 +103,7 @@ public class LedgerPanel extends JPanel {
         fields.add(filterField("To date (optional)", dateFilter(endField)));
 
         JButton applyButton = new JButton("Apply Filters");
-        JButton clearButton = new JButton("Clear Dates");
+        JButton clearButton = new JButton("Clear Filters");
         JButton refreshButton = new JButton("Refresh");
         JButton exportButton = new JButton("Export CSV");
         styleActionButton(applyButton, true);
@@ -112,12 +111,18 @@ public class LedgerPanel extends JPanel {
         styleActionButton(refreshButton, true);
         styleActionButton(exportButton, true);
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel filterButtons = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 8, 0)
+        );
+        filterButtons.setOpaque(false);
+        filterButtons.add(applyButton);
+        filterButtons.add(clearButton);
+        filterButtons.add(exportButton);
+
+        JPanel buttons = new JPanel(new BorderLayout());
         buttons.setOpaque(false);
-        buttons.add(applyButton);
-        buttons.add(clearButton);
-        buttons.add(refreshButton);
-        buttons.add(exportButton);
+        buttons.add(filterButtons, BorderLayout.WEST);
+        buttons.add(refreshButton, BorderLayout.EAST);
 
         JPanel filters = new JPanel(new BorderLayout(0, 12));
         filters.setBackground(Color.WHITE);
@@ -153,7 +158,7 @@ public class LedgerPanel extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
         // Keep chronological order so running balances remain meaningful.
-        int[] widths = {200, 110, 240, 120, 120, 130, 60};
+        int[] widths = {110, 240, 180, 180, 130, 130};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -167,7 +172,7 @@ public class LedgerPanel extends JPanel {
                 protected void setValue(Object value) {
                     if (value instanceof BigDecimal) {
                         setText(
-                            ((BigDecimal) value)
+                            "₱ " + ((BigDecimal) value)
                                 .setScale(2)
                                 .toPlainString()
                         );
@@ -179,7 +184,7 @@ public class LedgerPanel extends JPanel {
 
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        for (int column = 3; column <= 5; column++) {
+        for (int column = 4; column <= 5; column++) {
             table.getColumnModel()
                 .getColumn(column)
                 .setCellRenderer(moneyRenderer);
@@ -601,12 +606,22 @@ public class LedgerPanel extends JPanel {
                 t.id AS transaction_id,
                 t.transaction_date,
                 t.description,
+                j.account_id,
+                a.name AS account_name,
                 j.debit_centavos,
                 j.credit_centavos
-            FROM journal_lines j
-            JOIN transactions t ON t.id = j.transaction_id
-            WHERE j.account_id = ?
-                AND t.owner_username = ?
+            FROM transactions t
+            JOIN journal_lines j ON j.transaction_id = t.id
+            JOIN accounts a
+                ON a.id = j.account_id
+                AND a.owner_username = t.owner_username
+            WHERE t.owner_username = ?
+                AND EXISTS (
+                    SELECT 1
+                    FROM journal_lines selected_line
+                    WHERE selected_line.transaction_id = t.id
+                        AND selected_line.account_id = ?
+                )
             """;
 
         if (end != null) {
@@ -629,19 +644,49 @@ public class LedgerPanel extends JPanel {
             PreparedStatement statement =
                 connection.prepareStatement(sql)
         ) {
-            statement.setInt(1, account.id);
-            statement.setString(2, Session.getCurrentUser());
-            
+            statement.setString(1, Session.getCurrentUser());
+            statement.setInt(2, account.id);
+
             if (end != null) {
                 statement.setString(3, end.toString());
             }
 
             try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    LocalDate entryDate = LocalDate.parse(
-                        result.getString("transaction_date")
-                    );
+                LedgerTransaction transaction = null;
 
+                while (result.next()) {
+                    long transactionId = result.getLong("transaction_id");
+                    if (transaction == null
+                        || transaction.id != transactionId) {
+                        if (transaction != null) {
+                            runningBalance = appendLedgerTransaction(
+                                transaction,
+                                start,
+                                runningBalance,
+                                entries
+                            );
+                            if (start == null
+                                || !transaction.date.isBefore(start)) {
+                                periodDebit = periodDebit.add(
+                                    transaction.selectedDebit
+                                );
+                                periodCredit = periodCredit.add(
+                                    transaction.selectedCredit
+                                );
+                            } else {
+                                opening = runningBalance;
+                            }
+                        }
+                        transaction = new LedgerTransaction(
+                            transactionId,
+                            LocalDate.parse(
+                                result.getString("transaction_date")
+                            ),
+                            result.getString("description")
+                        );
+                    }
+
+                    String accountName = result.getString("account_name");
                     BigDecimal debit = BigDecimal.valueOf(
                         result.getLong("debit_centavos"), 2
                     );
@@ -650,27 +695,39 @@ public class LedgerPanel extends JPanel {
                         result.getLong("credit_centavos"), 2
                     );
 
-                    runningBalance = runningBalance
-                        .add(debit)
-                        .subtract(credit);
-
-                    if (start != null && entryDate.isBefore(start)) {
-                        opening = runningBalance;
-                        continue;
+                    if (debit.signum() > 0
+                        && !transaction.debitAccounts.contains(accountName)) {
+                        transaction.debitAccounts.add(accountName);
                     }
+                    if (credit.signum() > 0
+                        && !transaction.creditAccounts.contains(accountName)) {
+                        transaction.creditAccounts.add(accountName);
+                    }
+                    if (result.getInt("account_id") == account.id) {
+                        transaction.selectedDebit =
+                            transaction.selectedDebit.add(debit);
+                        transaction.selectedCredit =
+                            transaction.selectedCredit.add(credit);
+                    }
+                }
 
-                    periodDebit = periodDebit.add(debit);
-                    periodCredit = periodCredit.add(credit);
-
-                    entries.add(new Object[] {
-                        account.label(),
-                        entryDate.toString(),
-                        result.getString("description"),
-                        debit,
-                        credit,
-                        runningBalance.abs(),
-                        side(runningBalance)
-                    });
+                if (transaction != null) {
+                    runningBalance = appendLedgerTransaction(
+                        transaction,
+                        start,
+                        runningBalance,
+                        entries
+                    );
+                    if (start == null || !transaction.date.isBefore(start)) {
+                        periodDebit = periodDebit.add(
+                            transaction.selectedDebit
+                        );
+                        periodCredit = periodCredit.add(
+                            transaction.selectedCredit
+                        );
+                    } else {
+                        opening = runningBalance;
+                    }
                 }
             }
 
@@ -689,35 +746,9 @@ public class LedgerPanel extends JPanel {
 
         model.setRowCount(0);
 
-        // Include opening balance in the table and CSV.
-        model.addRow(new Object[] {
-            account.label(),
-            start == null ? "" : start.toString(),
-            start == null
-                ? "Opening balance before first recorded entry"
-                : "Opening balance before " + start,
-            zero(),
-            zero(),
-            opening.abs(),
-            side(opening)
-        });
-
         for (Object[] row : entries) {
             model.addRow(row);
         }
-
-        // Include closing balance in the table and CSV.
-        model.addRow(new Object[] {
-            account.label(),
-            end == null ? "" : end.toString(),
-            end == null
-                ? "Closing balance through latest recorded entry"
-                : "Closing balance through " + end,
-            null,
-            null,
-            runningBalance.abs(),
-            side(runningBalance)
-        });
 
         resultsCards.show(resultsBody, "table");
 
@@ -738,14 +769,54 @@ public class LedgerPanel extends JPanel {
                 + (start == null ? "Beginning" : start.toString())
                 + " to "
                 + (end == null ? "Latest entry" : end.toString())
-                + " | Opening: PHP " + opening.abs().toPlainString()
+                + " | Opening: ₱ " + opening.abs().toPlainString()
                 + " " + side(opening)
-                + " | Period debit: PHP " + periodDebit.toPlainString()
-                + " | Period credit: PHP " + periodCredit.toPlainString()
-                + " | Closing: PHP " + runningBalance.abs().toPlainString()
+                + " | Period debit: ₱ " + periodDebit.toPlainString()
+                + " | Period credit: ₱ " + periodCredit.toPlainString()
+                + " | Closing: ₱ " + runningBalance.abs().toPlainString()
                 + " " + side(runningBalance)
                 + " | Entries: " + entries.size()
         );
+    }
+
+    private BigDecimal appendLedgerTransaction(
+        LedgerTransaction transaction,
+        LocalDate start,
+        BigDecimal runningBalance,
+        List<Object[]> entries
+    ) {
+        BigDecimal movement = transaction.selectedDebit
+            .subtract(transaction.selectedCredit);
+        runningBalance = runningBalance.add(movement);
+
+        if (start == null || !transaction.date.isBefore(start)) {
+            entries.add(new Object[] {
+                transaction.date.toString(),
+                transaction.description,
+                String.join(", ", transaction.debitAccounts),
+                String.join(", ", transaction.creditAccounts),
+                movement.abs(),
+                runningBalance
+            });
+        }
+
+        return runningBalance;
+    }
+
+    private static class LedgerTransaction {
+        private final long id;
+        private final LocalDate date;
+        private final String description;
+        private final List<String> debitAccounts = new ArrayList<>();
+        private final List<String> creditAccounts = new ArrayList<>();
+        private BigDecimal selectedDebit = zero();
+        private BigDecimal selectedCredit = zero();
+
+        LedgerTransaction(long id, LocalDate date, String description) {
+            this.id = id;
+            this.date = date;
+            this.description = description;
+        }
     }
 
     private LocalDate optionalDate(String text) {

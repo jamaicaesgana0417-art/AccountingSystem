@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.*;
-import javax.swing.border.Border;
 
 /** Two-column balance sheet populated from posted journal entries. */
 public class BalanceSheetPanel extends JPanel {
@@ -88,15 +87,19 @@ public class BalanceSheetPanel extends JPanel {
         panel.add(label, BorderLayout.NORTH);
 
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         scroll.getViewport().setBackground(Color.WHITE);
+        scroll.getViewport().setOpaque(true);
+        table.getTableHeader().setBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER)
+        );
         panel.add(scroll, BorderLayout.CENTER);
         return panel;
     }
 
     private static DefaultTableModel reportModel(String name) {
         return new DefaultTableModel(
-            new String[]{name, "Debit (PHP)", "Credit (PHP)"},
+            new String[]{name, "Debit (₱)", "Credit (₱)"},
             0
         ) {
             @Override
@@ -119,8 +122,10 @@ public class BalanceSheetPanel extends JPanel {
         table.setBackground(Color.WHITE);
         table.setRowHeight(32);
         table.setFillsViewportHeight(true);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(true);
+        table.setGridColor(BORDER);
+        table.setIntercellSpacing(new Dimension(1, 1));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setSelectionBackground(new Color(232, 238, 255));
         table.setSelectionForeground(TEXT);
@@ -148,6 +153,9 @@ public class BalanceSheetPanel extends JPanel {
                 setHorizontalAlignment(
                     column == 0 ? SwingConstants.LEFT : SwingConstants.RIGHT
                 );
+                if (column > 0 && value instanceof BigDecimal) {
+                    setText("₱ " + money((BigDecimal) value));
+                }
                 if (selected) {
                     setForeground(source.getSelectionForeground());
                 } else {
@@ -295,7 +303,7 @@ public class BalanceSheetPanel extends JPanel {
             status.setText("As of " + reportDate + "  |  "
                 + (difference.signum() == 0
                     ? "Balanced"
-                    : "Difference: PHP " + money(difference)));
+                    : "Difference: ₱ " + money(difference)));
 
         } catch (Exception exception) {
             assets.setRowCount(0);
@@ -320,7 +328,7 @@ public class BalanceSheetPanel extends JPanel {
 
         DefaultTableModel output = new DefaultTableModel(
             new String[]{
-                "As of", "Section", "Account", "Debit (PHP)", "Credit (PHP)"
+                "As of", "Section", "Account", "Debit (₱)", "Credit (₱)"
             },
             0
         );
