@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 import javax.swing.*;
 
+/** Login screen using the same split-panel style as password recovery. */
 public class LoginPanel extends JPanel {
 
     private static final int MAX_FAILS = 5;
@@ -15,12 +16,16 @@ public class LoginPanel extends JPanel {
     private final Preferences prefs =
         Preferences.userNodeForPackage(LoginPanel.class);
 
-    private final JTextField usernameField = Theme.textField("Username");
-    private final JPasswordField passwordField = Theme.passwordField("Password");
-    private final JCheckBox showPassword = Ui.checkBox("Show password");
-    private final JCheckBox rememberMe = Ui.checkBox("Remember my username");
-    private final JButton loginButton = Theme.primaryButton("Log in");
-    private final JButton signUpButton = Theme.secondaryButton("Create new account");
+    private final JTextField usernameField =
+        new AuthStyle.RoundedTextField("Enter your username");
+    private final JPasswordField passwordField =
+        new AuthStyle.RoundedPasswordField("Enter your password");
+
+    private final JCheckBox showPassword = AuthStyle.checkBox("Show password");
+    private final JCheckBox rememberMe = AuthStyle.checkBox("Remember my username");
+    private final JButton loginButton = new AuthStyle.ArrowButton("Log In");
+    private final JButton forgotButton = AuthStyle.linkButton("Forgot password?", 12, true);
+    private final JButton signUpButton = AuthStyle.linkButton("Create an account", 13, true);
     private final JLabel messageLabel = new JLabel(" ");
     private final JLabel capsLabel = new JLabel(" ");
 
@@ -31,52 +36,63 @@ public class LoginPanel extends JPanel {
     private int failedAttempts = 0;
 
     public LoginPanel() {
-        setLayout(new GridBagLayout());
-        setBackground(Theme.BG);
+        setLayout(new BorderLayout());
+        AuthStyle.bindShowPassword(showPassword, passwordField);
 
-        JPanel card = Theme.card();
-        card.setLayout(new GridBagLayout());
-        card.setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
 
-        JLabel title = new JLabel("Welcome back");
-        title.setFont(Theme.HEADING);
-        title.setForeground(Theme.TEXT);
+        JLabel title = AuthStyle.title("LOG IN");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        JLabel subtitle = AuthStyle.subtitle(
+            "Log in to open your accounting workspace."
+        );
+        subtitle.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JLabel subtitle = new JLabel("Log in to your accounting system");
-        subtitle.setFont(Theme.BODY);
-        subtitle.setForeground(Theme.MUTED);
+        messageLabel.setFont(AuthStyle.font(Font.PLAIN, 12));
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
+        capsLabel.setFont(AuthStyle.font(Font.BOLD, 12));
+        capsLabel.setForeground(new Color(0xB7791F));
 
-        messageLabel.setFont(Theme.BODY.deriveFont(13f));
-        messageLabel.setForeground(Theme.ERROR);
-
-        capsLabel.setFont(Theme.BODY.deriveFont(Font.BOLD, 12f));
-        capsLabel.setForeground(new Color(0xE0A800));
-
-        Ui.bindShowPassword(showPassword, passwordField);
+        JPanel leftOptions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftOptions.setOpaque(false);
+        leftOptions.add(showPassword);
+        leftOptions.add(rememberMe);
 
         JPanel optionsRow = new JPanel(new BorderLayout());
         optionsRow.setOpaque(false);
-        optionsRow.add(showPassword, BorderLayout.WEST);
-        optionsRow.add(Ui.link("Forgot password?", () -> onForgotClick.run()),
-                BorderLayout.EAST);
+        optionsRow.add(leftOptions, BorderLayout.WEST);
+        optionsRow.add(forgotButton, BorderLayout.EAST);
+
+        JPanel statusRow = new JPanel(new BorderLayout(8, 0));
+        statusRow.setOpaque(false);
+        statusRow.add(capsLabel, BorderLayout.WEST);
+        statusRow.add(messageLabel, BorderLayout.CENTER);
+
+        JPanel createRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        createRow.setOpaque(false);
+        JLabel newHere = new JLabel("New here?");
+        newHere.setFont(AuthStyle.font(Font.PLAIN, 13));
+        newHere.setForeground(AuthStyle.TEXT_MUTED);
+        createRow.add(newHere);
+        createRow.add(signUpButton);
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
-        c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
-        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
-        c.gridy = 3; c.insets = new Insets(0, 0, 6, 0);  card.add(passwordField, c);
-        c.gridy = 4; c.insets = new Insets(0, 0, 2, 0);  card.add(optionsRow, c);
-        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(rememberMe, c);
-        c.gridy = 6; c.insets = new Insets(0, 2, 0, 0);  card.add(capsLabel, c);
-        c.gridy = 7; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
-        c.gridy = 8; c.insets = new Insets(0, 0, 18, 0); card.add(loginButton, c);
-        c.gridy = 9; c.insets = new Insets(0, 0, 0, 0);  card.add(signUpButton, c);
+        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0); form.add(title, c);
+        c.gridy = 1; c.insets = new Insets(0, 0, 18, 0); form.add(subtitle, c);
+        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); form.add(usernameField, c);
+        c.gridy = 3; c.insets = new Insets(0, 0, 8, 0); form.add(passwordField, c);
+        c.gridy = 4; c.insets = new Insets(0, 0, 8, 0); form.add(optionsRow, c);
+        c.gridy = 5; c.insets = new Insets(0, 2, 10, 0); form.add(statusRow, c);
+        c.gridy = 6; c.insets = new Insets(0, 0, 14, 0); form.add(loginButton, c);
+        c.gridy = 7; c.insets = new Insets(0, 0, 0, 0); form.add(createRow, c);
 
-        add(card);
+        add(AuthStyle.loginBrandPanel(), BorderLayout.WEST);
+        add(AuthStyle.formSide(form, 22, 42), BorderLayout.CENTER);
 
         String saved = prefs.get(PREF_USER, "");
         if (!saved.isEmpty()) {
@@ -92,25 +108,36 @@ public class LoginPanel extends JPanel {
         loginButton.addActionListener(e -> doLogin());
         passwordField.addActionListener(e -> doLogin());
         usernameField.addActionListener(e -> passwordField.requestFocusInWindow());
+        forgotButton.addActionListener(e -> onForgotClick.run());
         signUpButton.addActionListener(e -> onSignUpClick.run());
     }
 
-    public void setOnLoginSuccess(Consumer<String> callback) { this.onLoginSuccess = callback; }
-    public void setOnSignUpClick(Runnable callback) { this.onSignUpClick = callback; }
-    public void setOnForgotClick(Runnable callback) { this.onForgotClick = callback; }
+    public void setOnLoginSuccess(Consumer<String> callback) {
+        onLoginSuccess = callback != null ? callback : username -> {};
+    }
+
+    public void setOnSignUpClick(Runnable callback) {
+        onSignUpClick = callback != null ? callback : () -> {};
+    }
+
+    public void setOnForgotClick(Runnable callback) {
+        onForgotClick = callback != null ? callback : () -> {};
+    }
 
     public void clearSensitive() {
         passwordField.setText("");
+        if (showPassword.isSelected()) showPassword.doClick();
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
         messageLabel.setText(" ");
+        capsLabel.setText(" ");
     }
 
     private void updateCaps() {
         boolean on = false;
         try {
-            on = Toolkit.getDefaultToolkit()
-                    .getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
-        } catch (UnsupportedOperationException ex) {
-            // some systems can't tell; just hide the warning
+            on = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
+        } catch (UnsupportedOperationException ignored) {
+            // Some systems cannot report the Caps Lock state.
         }
         capsLabel.setText(on ? "Caps Lock is on" : " ");
     }
@@ -122,13 +149,13 @@ public class LoginPanel extends JPanel {
         char[] password = passwordField.getPassword();
 
         if (username.isEmpty() || password.length == 0) {
+            Arrays.fill(password, '\0');
             showError("Please enter your username and password.");
-            Arrays.fill(password, ' ');
             return;
         }
 
         loginButton.setEnabled(false);
-        messageLabel.setForeground(Theme.MUTED);
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
         messageLabel.setText("Logging in...");
 
         new SwingWorker<String, Void>() {
@@ -137,7 +164,7 @@ public class LoginPanel extends JPanel {
                 try {
                     return AuthService.login(username, password);
                 } finally {
-                    Arrays.fill(password, ' ');
+                    Arrays.fill(password, '\0');
                 }
             }
 
@@ -156,17 +183,13 @@ public class LoginPanel extends JPanel {
                         }
                     } else {
                         failedAttempts = 0;
-                        if (rememberMe.isSelected()) {
-                            prefs.put(PREF_USER, user);
-                        } else {
-                            prefs.remove(PREF_USER);
-                        }
-                        passwordField.setText("");
-                        messageLabel.setText(" ");
+                        if (rememberMe.isSelected()) prefs.put(PREF_USER, user);
+                        else prefs.remove(PREF_USER);
+                        clearSensitive();
                         onLoginSuccess.accept(user);
                     }
                 } catch (Exception ex) {
-                    showError("Could not log in. Check your connection.");
+                    showError("Could not log in. Check your database connection.");
                     ex.printStackTrace();
                 }
             }
@@ -176,25 +199,26 @@ public class LoginPanel extends JPanel {
     private void startLock() {
         failedAttempts = 0;
         loginButton.setEnabled(false);
-        final int[] left = { LOCK_SECONDS };
-        showError("Too many attempts. Try again in " + left[0] + "s.");
+        final int[] secondsLeft = { LOCK_SECONDS };
+        showError("Too many attempts. Try again in " + secondsLeft[0] + "s.");
 
-        javax.swing.Timer timer = new javax.swing.Timer(1000, null);
+        Timer timer = new Timer(1000, null);
         timer.addActionListener(e -> {
-            left[0]--;
-            if (left[0] <= 0) {
+            secondsLeft[0]--;
+            if (secondsLeft[0] <= 0) {
                 timer.stop();
                 loginButton.setEnabled(true);
+                messageLabel.setForeground(AuthStyle.TEXT_MUTED);
                 messageLabel.setText(" ");
             } else {
-                showError("Too many attempts. Try again in " + left[0] + "s.");
+                showError("Too many attempts. Try again in " + secondsLeft[0] + "s.");
             }
         });
         timer.start();
     }
 
     private void showError(String message) {
-        messageLabel.setForeground(Theme.ERROR);
-        messageLabel.setText(message);
+        messageLabel.setForeground(AuthStyle.ERROR);
+        messageLabel.setText("<html><body style='width:340px;'>" + message + "</body></html>");
     }
 }

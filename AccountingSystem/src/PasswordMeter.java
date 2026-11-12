@@ -7,14 +7,14 @@ import javax.swing.event.DocumentListener;
 public class PasswordMeter extends JPanel {
 
     private static final Color[] COLORS = {
-        Theme.BORDER, Theme.ERROR, new Color(0xE0A800),
+        AuthStyle.BORDER, AuthStyle.ERROR, new Color(0xE0A800),
         new Color(0x7CB342), new Color(0x2E9E5B)
     };
     private static final String[] NAMES = { " ", "Weak", "Fair", "Good", "Strong" };
 
     private int score = 0;
     private final JLabel nameLabel = new JLabel(" ");
-    private final JTextArea hintArea = new JTextArea(3, 20);
+    private final JTextArea hintArea = new JTextArea();
     private final JPanel bars;
 
     public PasswordMeter() {
@@ -31,7 +31,7 @@ public class PasswordMeter extends JPanel {
                 int h = 6;
                 int y = (getHeight() - h) / 2;
                 for (int i = 0; i < 4; i++) {
-                    g2.setColor(i < score ? COLORS[score] : Theme.BORDER);
+                    g2.setColor(i < score ? COLORS[score] : AuthStyle.BORDER);
                     g2.fillRoundRect(i * (w + gap), y, w, h, h, h);
                 }
                 g2.dispose();
@@ -40,20 +40,20 @@ public class PasswordMeter extends JPanel {
         bars.setOpaque(false);
         bars.setPreferredSize(new Dimension(10, 18));
 
-        nameLabel.setFont(Theme.BODY.deriveFont(Font.BOLD, 12f));
+        nameLabel.setFont(AuthStyle.font(Font.BOLD, 12));
         nameLabel.setPreferredSize(new Dimension(54, 18));
         nameLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        // A text area wraps to whatever width the card gives it,
-        // so long warnings never run off the edge.
+        // Hint area configured to wrap and only show when there is text (removes the gap)
         hintArea.setEditable(false);
         hintArea.setFocusable(false);
         hintArea.setOpaque(false);
         hintArea.setLineWrap(true);
         hintArea.setWrapStyleWord(true);
         hintArea.setBorder(null);
-        hintArea.setFont(Theme.BODY.deriveFont(Font.BOLD, 12f));
-        hintArea.setForeground(Theme.ERROR);
+        hintArea.setFont(AuthStyle.font(Font.BOLD, 11));
+        hintArea.setForeground(AuthStyle.ERROR);
+        hintArea.setVisible(false); // HIDE BY DEFAULT TO REMOVE GAP
 
         JPanel top = new JPanel(new BorderLayout(10, 0));
         top.setOpaque(false);
@@ -62,9 +62,6 @@ public class PasswordMeter extends JPanel {
 
         add(top, BorderLayout.NORTH);
         add(hintArea, BorderLayout.CENTER);
-
-        setMinimumSize(new Dimension(0, 80));
-        setPreferredSize(new Dimension(300, 80));
     }
 
     public void update(char[] password, String username) {
@@ -74,8 +71,17 @@ public class PasswordMeter extends JPanel {
 
         String problem = password.length == 0
                 ? null : PasswordPolicy.validate(password, username);
-        hintArea.setText(problem == null ? "" : problem);
+
+        if (problem != null && !problem.isEmpty()) {
+            hintArea.setText(problem);
+            hintArea.setVisible(true);
+        } else {
+            hintArea.setText("");
+            hintArea.setVisible(false);
+        }
+
         bars.repaint();
+        revalidate();
     }
 
     // Updates the meter live while the user types.
@@ -88,7 +94,7 @@ public class PasswordMeter extends JPanel {
             private void refresh() {
                 char[] p = passwordField.getPassword();
                 update(p, usernameField.getText());
-                Arrays.fill(p, ' ');
+                Arrays.fill(p, '\0');
             }
         };
         passwordField.getDocument().addDocumentListener(listener);

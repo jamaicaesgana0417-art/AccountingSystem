@@ -2,59 +2,81 @@ import java.awt.*;
 import java.util.Arrays;
 import javax.swing.*;
 
+/** Account registration screen matching the Login and Forgot Password design. */
 public class SignUpPanel extends JPanel {
 
-    private final JTextField usernameField = Theme.textField("Username");
-    private final JPasswordField passwordField = Theme.passwordField("Password (8+ characters)");
+    private final JTextField usernameField =
+        new AuthStyle.RoundedTextField("Choose a username");
+    private final JPasswordField passwordField =
+        new AuthStyle.RoundedPasswordField("Create a password (8+ characters)");
+    private final JPasswordField confirmField =
+        new AuthStyle.RoundedPasswordField("Re-enter your password");
+
     private final PasswordMeter meter = new PasswordMeter();
-    private final JPasswordField confirmField = Theme.passwordField("Confirm password");
-    private final JCheckBox showPassword = Ui.checkBox("Show password");
-    private final JButton signUpButton = Theme.primaryButton("Create account");
-    private final JButton backButton = Theme.secondaryButton("Back to login");
-    private final JLabel messageLabel = new JLabel(" ");
+    private final JCheckBox showPassword = AuthStyle.checkBox("Show password");
+    private final JButton signUpButton = new AuthStyle.ArrowButton("Create Account");
+    private final JButton backButton =
+        AuthStyle.linkButton("Log in", 14, true);
+    private final JLabel messageLabel =
+        new JLabel(" ");
 
     private Runnable onSignUpSuccess = () -> {};
     private Runnable onBackToLogin = () -> {};
 
     public SignUpPanel() {
-        setLayout(new GridBagLayout());
-        setBackground(Theme.BG);
+        setLayout(new BorderLayout());
 
-        JPanel card = Theme.card();
-        card.setLayout(new GridBagLayout());
-        card.setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
+        lockField(usernameField, 42);
+        lockField(passwordField, 42);
+        lockField(confirmField, 42);
+        lockField(signUpButton, 44);
 
-        JLabel title = new JLabel("Create account");
-        title.setFont(Theme.HEADING);
-        title.setForeground(Theme.TEXT);
+        meter.setPreferredSize(new Dimension(410, 38));
+        meter.setMinimumSize(new Dimension(100, 36));
 
-        JLabel subtitle = new JLabel("Join the accounting system");
-        subtitle.setFont(Theme.BODY);
-        subtitle.setForeground(Theme.MUTED);
-
-        messageLabel.setFont(Theme.BODY.deriveFont(13f));
-        messageLabel.setForeground(Theme.ERROR);
-
-        Ui.bindShowPassword(showPassword, passwordField, confirmField);
+        AuthStyle.bindShowPassword(showPassword, passwordField, confirmField);
         meter.attach(passwordField, usernameField);
+
+        messageLabel.setFont(AuthStyle.font(Font.PLAIN, 12));
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
+
+        JLabel title = AuthStyle.title("CREATE ACCOUNT");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel subtitle = AuthStyle.subtitle(
+            "Create your workspace and get started."
+        );
+        subtitle.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel loginRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        loginRow.setOpaque(false);
+        JLabel alreadyHaveAccount = new JLabel("Already have an account?");
+        alreadyHaveAccount.setFont(AuthStyle.font(Font.PLAIN, 13));
+        alreadyHaveAccount.setForeground(AuthStyle.TEXT_MUTED);
+        loginRow.add(alreadyHaveAccount);
+        loginRow.add(backButton);
 
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.weightx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0);  card.add(title, c);
-        c.gridy = 1; c.insets = new Insets(0, 0, 22, 0); card.add(subtitle, c);
-        c.gridy = 2; c.insets = new Insets(0, 0, 12, 0); card.add(usernameField, c);
-        c.gridy = 3; c.insets = new Insets(0, 0, 8, 0);  card.add(passwordField, c);
-        c.gridy = 4; c.insets = new Insets(0, 2, 8, 0);  card.add(meter, c);
-        c.gridy = 5; c.insets = new Insets(0, 0, 6, 0);  card.add(confirmField, c);
-        c.gridy = 6; c.insets = new Insets(0, 0, 6, 0);  card.add(showPassword, c);
-        c.gridy = 7; c.insets = new Insets(0, 2, 12, 0); card.add(messageLabel, c);
-        c.gridy = 8; c.insets = new Insets(0, 0, 18, 0); card.add(signUpButton, c);
-        c.gridy = 9; c.insets = new Insets(0, 0, 0, 0);  card.add(backButton, c);
+        c.gridy = 0; c.insets = new Insets(0, 0, 4, 0); form.add(title, c);
+        c.gridy = 1; c.insets = new Insets(0, 0, 16, 0); form.add(subtitle, c);
+        c.gridy = 2; c.insets = new Insets(0, 0, 10, 0); form.add(usernameField, c);
+        c.gridy = 3; c.insets = new Insets(0, 0, 3, 0); form.add(passwordField, c);
+        c.gridy = 4; c.insets = new Insets(0, 2, 5, 0); form.add(meter, c);
+        c.gridy = 5; c.insets = new Insets(0, 0, 8, 0); form.add(confirmField, c);
+        c.gridy = 6; c.insets = new Insets(0, 0, 5, 0); form.add(showPassword, c);
+        c.gridy = 7; c.insets = new Insets(0, 2, 8, 0); form.add(messageLabel, c);
+        c.gridy = 8; c.insets = new Insets(0, 0, 12, 0); form.add(signUpButton, c);
+        c.gridy = 9; c.insets = new Insets(0, 0, 0, 0); form.add(loginRow, c);
 
-        add(card);
+        add(AuthStyle.signUpBrandPanel(), BorderLayout.WEST);
+        add(AuthStyle.formSide(form, 16, 30), BorderLayout.CENTER);
 
         signUpButton.addActionListener(e -> doSignUp());
         confirmField.addActionListener(e -> doSignUp());
@@ -66,26 +88,41 @@ public class SignUpPanel extends JPanel {
         });
     }
 
-    public void setOnSignUpSuccess(Runnable callback) { this.onSignUpSuccess = callback; }
-    public void setOnBackToLogin(Runnable callback) { this.onBackToLogin = callback; }
+    public void setOnSignUpSuccess(Runnable callback) {
+        onSignUpSuccess = callback != null ? callback : () -> {};
+    }
+
+    public void setOnBackToLogin(Runnable callback) {
+        onBackToLogin = callback != null ? callback : () -> {};
+    }
+
+    private void lockField(JComponent component, int height) {
+        component.setPreferredSize(new Dimension(410, height));
+        component.setMinimumSize(new Dimension(100, height));
+    }
 
     private void clearAll() {
         usernameField.setText("");
         passwordField.setText("");
         confirmField.setText("");
+        if (showPassword.isSelected()) showPassword.doClick();
+        signUpButton.setEnabled(true);
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
         messageLabel.setText(" ");
     }
 
     private void doSignUp() {
+        if (!signUpButton.isEnabled()) return;
+
         String username = usernameField.getText().trim();
         char[] password = passwordField.getPassword();
         char[] confirm = confirmField.getPassword();
 
         String problem = null;
-        if (username.isEmpty() || password.length == 0) {
-            problem = "Please fill in all the fields.";
+        if (username.isEmpty() || password.length == 0 || confirm.length == 0) {
+            problem = "Please complete all fields.";
         } else if (!username.matches("[A-Za-z0-9_]{3,30}")) {
-            problem = "Username: 3–30 letters, numbers, or _ only.";
+            problem = "Username must be 3–30 characters using letters, numbers, or underscores.";
         } else {
             problem = PasswordPolicy.validate(password, username);
             if (problem == null && !Arrays.equals(password, confirm)) {
@@ -93,17 +130,17 @@ public class SignUpPanel extends JPanel {
             }
         }
 
-        Arrays.fill(confirm, ' ');
+        Arrays.fill(confirm, '\0');
 
         if (problem != null) {
-            Arrays.fill(password, ' ');
+            Arrays.fill(password, '\0');
             showError(problem);
             return;
         }
 
         signUpButton.setEnabled(false);
-        messageLabel.setForeground(Theme.MUTED);
-        messageLabel.setText("Creating account...");
+        messageLabel.setForeground(AuthStyle.TEXT_MUTED);
+        messageLabel.setText("Creating your account...");
 
         new SwingWorker<String, Void>() {
             @Override
@@ -111,12 +148,13 @@ public class SignUpPanel extends JPanel {
                 try {
                     AuthService.register(username, password);
                 } finally {
-                    Arrays.fill(password, ' ');
+                    Arrays.fill(password, '\0');
                 }
+
                 try {
                     return RecoveryService.issueCode(username);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                } catch (Exception recoveryException) {
+                    recoveryException.printStackTrace();
                     return null;
                 }
             }
@@ -125,27 +163,28 @@ public class SignUpPanel extends JPanel {
             protected void done() {
                 signUpButton.setEnabled(true);
                 try {
-                    String code = get();
+                    String recoveryCode = get();
                     clearAll();
-                    if (code != null) {
-                        Ui.showRecoveryCode(SignUpPanel.this, code);
+
+                    if (recoveryCode != null) {
+                        AuthStyle.showRecoveryCode(SignUpPanel.this, recoveryCode);
                     } else {
                         JOptionPane.showMessageDialog(
                             SignUpPanel.this,
-                            "Account created, but the recovery code could not "
-                            + "be set up.\nAsk your leader to check the database "
-                            + "permissions.",
-                            "Recovery code",
+                            "Your account was created, but its recovery code "
+                                + "could not be generated. Please contact your administrator.",
+                            "Recovery Code",
                             JOptionPane.WARNING_MESSAGE
                         );
                     }
+
                     onSignUpSuccess.run();
                 } catch (Exception ex) {
-                    Throwable cause = (ex.getCause() != null) ? ex.getCause() : ex;
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
                     if (cause instanceof IllegalArgumentException) {
                         showError(cause.getMessage());
                     } else {
-                        showError("Could not create account. Check your connection.");
+                        showError("Could not create your account. Check your database connection.");
                         ex.printStackTrace();
                     }
                 }
@@ -154,7 +193,9 @@ public class SignUpPanel extends JPanel {
     }
 
     private void showError(String message) {
-        messageLabel.setForeground(Theme.ERROR);
-        messageLabel.setText("<html><div style='width:280px'>" + message + "</div></html>");
+        messageLabel.setForeground(AuthStyle.ERROR);
+        messageLabel.setText(
+            "<html><body style='width:340px;'>" + message + "</body></html>"
+        );
     }
 }

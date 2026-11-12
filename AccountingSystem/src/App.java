@@ -12,7 +12,7 @@ public class App {
             AuthService.initialize();
 
             SwingUtilities.invokeLater(() ->
-                new LoginFrame().setVisible(true)
+                new AuthFrame().setVisible(true)
             );
 
         } catch (SQLException exception) {
@@ -150,7 +150,7 @@ public class App {
 
             if (answer == JOptionPane.YES_OPTION) {
     Session.logout();
-    new LoginFrame().setVisible(true);
+    new AuthFrame().setVisible(true);
     window.dispose();
 }
         });
