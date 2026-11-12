@@ -162,7 +162,7 @@ public class NewTransactionPanel extends JPanel {
         addFieldBlock(fields, 0, 1, 2, "Description", descriptionField);
         addFieldBlock(fields, 0, 2, 1, "Debit account", debitBox);
         addFieldBlock(fields, 1, 2, 1, "Credit account", creditBox);
-        addFieldBlock(fields, 0, 3, 2, "Amount (PHP)", amountField);
+        addFieldBlock(fields, 0, 3, 2, "Amount (₱)", amountField);
 
         JButton clearButton = new JButton("Clear form");
         clearButton.setFont(new Font("Inter", Font.PLAIN, 12));
@@ -635,7 +635,7 @@ public class NewTransactionPanel extends JPanel {
                 + "\nDescription: " + description
                 + "\nDebit: " + debit
                 + "\nCredit: " + credit
-                + "\nAmount: PHP " + amount.toPlainString()
+                + "\nAmount: ₱ " + amount.toPlainString()
                 + "\n\nPost this transaction?",
             "Confirm Transaction",
             JOptionPane.YES_NO_OPTION
