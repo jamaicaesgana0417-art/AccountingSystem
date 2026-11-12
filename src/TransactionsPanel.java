@@ -1,9 +1,3 @@
-import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableRowSorter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,6 +12,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
 public class TransactionsPanel extends JPanel {
 
@@ -515,7 +515,7 @@ public class TransactionsPanel extends JPanel {
             FROM accounts
             WHERE active = 1
             AND owner_username = ?
-            ORDER BY code::INTEGER ASC
+            ORDER BY code::INTEGER ASC::INTEGER ASC::INTEGER ASC
             """;
 
         try (
