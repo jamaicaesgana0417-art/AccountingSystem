@@ -29,6 +29,9 @@ public class LedgerPanel extends JPanel {
 
     private final JLabel summaryLabel =
         new JLabel("Running balances update automatically from posted journal entries.");
+        private final JLabel totalsLabel = new JLabel(
+    "Total Debit: ₱ 0.00  |  Total Credit: ₱ 0.00  |  Closing Balance: ₱ 0.00"
+);
 
     private boolean loadingAccounts = false;
 
@@ -36,6 +39,7 @@ public class LedgerPanel extends JPanel {
         new DefaultTableModel(
             new String[] {
                 "Date",
+                "Reference",
                 "Description",
                 "Debit Account",
                 "Credit Account",
@@ -51,7 +55,7 @@ public class LedgerPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column >= 4) {
+                if (column >= 5) {
                     return BigDecimal.class;
                 }
 
@@ -158,7 +162,7 @@ public class LedgerPanel extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createEmptyBorder());
 
         // Keep chronological order so running balances remain meaningful.
-        int[] widths = {110, 240, 180, 180, 130, 130};
+        int[] widths = {110, 100, 240, 180, 180, 130, 130};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -184,7 +188,7 @@ public class LedgerPanel extends JPanel {
 
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        for (int column = 4; column <= 5; column++) {
+        for (int column = 5; column <= 6; column++) {
             table.getColumnModel()
                 .getColumn(column)
                 .setCellRenderer(moneyRenderer);
@@ -212,7 +216,21 @@ public class LedgerPanel extends JPanel {
 
         summaryLabel.setFont(new Font("Inter", Font.PLAIN, 10));
         summaryLabel.setForeground(MUTED);
-        add(summaryLabel, BorderLayout.SOUTH);
+        JPanel totalsPanel = new JPanel(new BorderLayout(0, 6));
+        totalsPanel.setBackground(Color.WHITE);
+        totalsPanel.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createLineBorder(BORDER, 1, true),
+        BorderFactory.createEmptyBorder(12, 14, 12, 14)
+        ));
+
+        totalsLabel.setFont(new Font("Inter", Font.BOLD, 11));
+        totalsLabel.setForeground(TEXT);
+        summaryLabel.setFont(new Font("Inter", Font.PLAIN, 10));
+        summaryLabel.setForeground(MUTED);
+
+        totalsPanel.add(totalsLabel, BorderLayout.NORTH);
+        totalsPanel.add(summaryLabel, BorderLayout.SOUTH);
+        add(totalsPanel, BorderLayout.SOUTH);
 
         accountBox.addActionListener(event -> {
             if (!loadingAccounts) {
@@ -751,6 +769,13 @@ public class LedgerPanel extends JPanel {
         }
 
         resultsCards.show(resultsBody, "table");
+        totalsLabel.setText(
+    "Total Debit: ₱ " + periodDebit.toPlainString()
+        + "  |  Total Credit: ₱ " + periodCredit.toPlainString()
+        + "  |  Closing Balance: ₱ "
+        + runningBalance.abs().toPlainString()
+        + " " + side(runningBalance)
+);
 
         String normalSide =
             ChartOfAccounts.isDebitNormal(account.type)
@@ -792,6 +817,7 @@ public class LedgerPanel extends JPanel {
         if (start == null || !transaction.date.isBefore(start)) {
             entries.add(new Object[] {
                 transaction.date.toString(),
+                String.valueOf(transaction.id),
                 transaction.description,
                 String.join(", ", transaction.debitAccounts),
                 String.join(", ", transaction.creditAccounts),

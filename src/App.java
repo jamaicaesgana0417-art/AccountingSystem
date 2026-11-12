@@ -1164,7 +1164,7 @@ profileMenu.add(logoutMenuItem);
             content.setBorder(new EmptyBorder(28, 36, 28, 36));
             content.setOpaque(false);
 
-            JLabel heading = new JLabel("Hey, Student!");
+           JLabel heading = new JLabel("Hey, " + username + "!");
             heading.setForeground(DARK_TEXT);
             heading.setFont(HomeFonts.poppinsSemiBold(30));
             heading.setAlignmentX(Component.LEFT_ALIGNMENT);
