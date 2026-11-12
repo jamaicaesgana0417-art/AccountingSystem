@@ -125,6 +125,80 @@ public class AuthService {
         }
     }
 
+    public static void changePassword(
+        String username,
+        char[] currentPassword,
+        char[] newPassword
+    ) throws SQLException, GeneralSecurityException {
+        if (newPassword.length < 8) {
+            throw new IllegalArgumentException(
+                "Password must contain at least 8 characters."
+            );
+        }
+
+        String selectSql = """
+            SELECT username, password_hash, password_salt, iterations
+            FROM public.users
+            WHERE LOWER(username) = LOWER(?)
+            """;
+
+        try (Connection connection = Database.connect()) {
+            String storedUsername;
+            byte[] expectedHash;
+
+            try (PreparedStatement statement =
+                     connection.prepareStatement(selectSql)) {
+                statement.setString(1, username.trim());
+
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next()) {
+                        throw new SQLException(
+                            "The signed-in user account could not be found."
+                        );
+                    }
+
+                    storedUsername = result.getString("username");
+                    byte[] currentHash = hash(
+                        currentPassword,
+                        result.getBytes("password_salt"),
+                        result.getInt("iterations")
+                    );
+                    expectedHash = result.getBytes("password_hash");
+
+                    if (!MessageDigest.isEqual(currentHash, expectedHash)) {
+                        throw new IllegalArgumentException(
+                            "The current password is incorrect."
+                        );
+                    }
+                }
+            }
+
+            byte[] salt = new byte[16];
+            new SecureRandom().nextBytes(salt);
+            byte[] newHash = hash(newPassword, salt, ITERATIONS);
+
+            String updateSql = """
+                UPDATE public.users
+                SET password_hash = ?, password_salt = ?, iterations = ?
+                WHERE username = ?
+                """;
+
+            try (PreparedStatement statement =
+                     connection.prepareStatement(updateSql)) {
+                statement.setBytes(1, newHash);
+                statement.setBytes(2, salt);
+                statement.setInt(3, ITERATIONS);
+                statement.setString(4, storedUsername);
+
+                if (statement.executeUpdate() != 1) {
+                    throw new SQLException(
+                        "The password could not be updated."
+                    );
+                }
+            }
+        }
+    }
+
     private static byte[] hash(
         char[] password,
         byte[] salt,

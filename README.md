@@ -8,13 +8,6 @@
 - PostgreSQL JDBC driver at `lib/postgresql-42.7.14.jar`.
 
 ### Steps
-
-## One-time setup
-Double-click `build.bat` (needs a JDK). It creates `AccountingSystem.jar`.
-
-## Every open
-Double-click `AccountingSystem.jar`. No passwords or environment variables needed.
-
 1. Download or clone the project from GitHub.
 2. Open the `AccountingSystem` project folder in Visual Studio Code. Make sure it contains `src`, `bin`, `lib`, and `.vscode`.
 3. Check that `postgresql-42.7.14.jar` is inside the `lib` folder.
@@ -24,8 +17,10 @@ Double-click `AccountingSystem.jar`. No passwords or environment variables neede
 8. Click the green **Start Debugging** button or press `F5`.
 9. The Accounting System login screen should appear.
 
-### If the App Does Not Open
+## Every open
+Double-click `AccountingSystem.jar`. No passwords or environment variables needed.
 
+### If the App Does Not Open
 - Make sure Java is installed and available in your terminal.
 - Check that the PostgreSQL JDBC driver is in the correct folder.
 - Verify your Supabase connection settings and internet connection.
