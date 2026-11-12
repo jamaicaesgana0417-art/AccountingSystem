@@ -123,12 +123,19 @@ public class TransactionsPanel extends JPanel {
         styleActionButton(refreshButton, true);
         styleActionButton(exportButton, true);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel actions = new JPanel(new BorderLayout());
         actions.setOpaque(false);
-        actions.add(applyButton);
-        actions.add(clearButton);
-        actions.add(refreshButton);
-        actions.add(exportButton);
+
+        JPanel leftActions = new JPanel(
+            new FlowLayout(FlowLayout.LEFT, 8, 0)
+        );
+        leftActions.setOpaque(false);
+        leftActions.add(applyButton);
+        leftActions.add(clearButton);
+        leftActions.add(exportButton);
+
+        actions.add(leftActions, BorderLayout.WEST);
+        actions.add(refreshButton, BorderLayout.EAST);
 
         JPanel filters = roundedCard(new BorderLayout(0, 12), Color.WHITE);
         filters.setBorder(BorderFactory.createCompoundBorder(
