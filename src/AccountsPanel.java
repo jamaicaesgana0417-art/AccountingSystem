@@ -54,7 +54,7 @@ public class AccountsPanel extends JPanel {
             SELECT code, name, type
             FROM accounts
             WHERE owner_username = ? AND active = 1
-            ORDER BY code
+            ORDER BY code::INTEGER ASC
             """;
 
         java.util.List<Object[]> rows = new java.util.ArrayList<>();

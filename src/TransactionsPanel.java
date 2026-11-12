@@ -193,7 +193,7 @@ public class TransactionsPanel extends JPanel {
             FROM accounts
             WHERE active = 1
             AND owner_username = ?
-            ORDER BY code
+            ORDER BY code::INTEGER ASC
             """;
 
         try (
