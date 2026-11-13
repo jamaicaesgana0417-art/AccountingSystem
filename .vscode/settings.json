@@ -9,5 +9,6 @@
     "postgresql",
     "javac",
     "JDBC"
-  ]
+  ],
+  "java.debug.settings.onBuildFailureProceed": true
 }

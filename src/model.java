@@ -1,0 +1,6 @@
+/**
+ * model
+ */
+public class model {
+
+}
