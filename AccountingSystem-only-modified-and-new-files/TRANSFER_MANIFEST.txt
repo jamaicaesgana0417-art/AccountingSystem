@@ -1,0 +1,111 @@
+Modified and new files only
+Base for comparison: AccountingSystem-main.zip
+Latest project: AccountingSystem.zip
+Target branch: feature/search-filters-csv-export
+
+Only the following are included:
+- Modified files: latest copy replaces the base copy.
+- New files: files present only in the latest project.
+- Unchanged files are excluded.
+- Files that exist only in the base are excluded.
+- No .git metadata or branch history is included.
+
+Modified files: 58
+New files: 34
+Total files included: 92
+
+MODIFIED:
+.vscode/launch.json
+.vscode/settings.json
+AccountingSystem.jar
+README.md
+bin/AccountsPanel.class
+bin/App$1.class
+bin/App$2.class
+bin/App$3.class
+bin/App$4.class
+bin/App$5.class
+bin/App$6.class
+bin/App$7.class
+bin/App$8.class
+bin/App$9.class
+bin/App$HomeDashboard$1.class
+bin/App$HomeDashboard$2.class
+bin/App$HomeDashboard.class
+bin/App$HomeStats.class
+bin/App.class
+bin/BalanceSheetPanel$1.class
+bin/BalanceSheetPanel$2.class
+bin/BalanceSheetPanel$AccountSummary.class
+bin/BalanceSheetPanel.class
+bin/ChartOfAccounts.class
+bin/JournalPanel$1.class
+bin/JournalPanel$2.class
+bin/JournalPanel$CalendarIcon.class
+bin/JournalPanel.class
+bin/LedgerPanel$1.class
+bin/LedgerPanel$2.class
+bin/LedgerPanel$AccountOption.class
+bin/LedgerPanel$CalendarIcon.class
+bin/LedgerPanel$LedgerTransaction.class
+bin/LedgerPanel.class
+bin/NewTransactionPanel$1.class
+bin/NewTransactionPanel$AccountOption.class
+bin/NewTransactionPanel$CalendarIcon.class
+bin/NewTransactionPanel.class
+bin/Theme$1.class
+bin/Theme$2.class
+bin/Theme$3.class
+bin/Theme$4.class
+bin/Theme$5.class
+bin/Theme.class
+bin/TransactionsPanel$1.class
+bin/TransactionsPanel$2.class
+bin/TransactionsPanel$AccountOption.class
+bin/TransactionsPanel$CalendarIcon.class
+bin/TransactionsPanel.class
+src/AccountsPanel.java
+src/App.java
+src/BalanceSheetPanel.java
+src/ChartOfAccounts.java
+src/JournalPanel.java
+src/LedgerPanel.java
+src/NewTransactionPanel.java
+src/Theme.java
+src/TransactionsPanel.java
+
+NEW:
+bin/AccountingFilterBar$1.class
+bin/AccountingFilterBar$10.class
+bin/AccountingFilterBar$11.class
+bin/AccountingFilterBar$12.class
+bin/AccountingFilterBar$2.class
+bin/AccountingFilterBar$3.class
+bin/AccountingFilterBar$4.class
+bin/AccountingFilterBar$5.class
+bin/AccountingFilterBar$6.class
+bin/AccountingFilterBar$7.class
+bin/AccountingFilterBar$8.class
+bin/AccountingFilterBar$9.class
+bin/AccountingFilterBar$Glyph$Kind.class
+bin/AccountingFilterBar$Glyph.class
+bin/AccountingFilterBar$HintField$1.class
+bin/AccountingFilterBar$HintField.class
+bin/AccountingFilterBar$Picker$1.class
+bin/AccountingFilterBar$Picker.class
+bin/AccountingFilterBar.class
+bin/AccountingIcons$GlyphIcon.class
+bin/AccountingIcons.class
+bin/BackgroundLoad$1.class
+bin/BackgroundLoad$Work.class
+bin/BackgroundLoad.class
+bin/JournalPanel$JournalData.class
+bin/LedgerPanel$LedgerResult.class
+bin/RefreshButton$ArrowIcon.class
+bin/RefreshButton$RefreshUI.class
+bin/RefreshButton.class
+bin/TransactionsPanel$TransactionData.class
+src/AccountingFilterBar.java
+src/AccountingIcons.java
+src/BackgroundLoad.java
+src/RefreshButton.java
