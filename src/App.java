@@ -2617,7 +2617,7 @@ String iconText;
                 FROM accounts
                 WHERE owner_username = ?
                   AND active = 1
-                ORDER BY Code
+                ORDER BY code::INTEGER AS
                 """;
 
             Map<Integer, AccountInfo> result = new LinkedHashMap<>();

@@ -530,7 +530,7 @@ public class LedgerPanel extends JPanel {
             SELECT id, code, name, type
             FROM accounts
             WHERE owner_username = ?
-            ORDER BY Code
+            ORDER BY code::INTEGER AS
             """;
 
  try (
