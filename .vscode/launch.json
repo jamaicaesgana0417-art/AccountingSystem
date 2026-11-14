@@ -1,4 +1,9 @@
 {
+  "java.project.sourcePaths": ["src"],
+  "java.project.outputPath": "bin",
+  "java.project.referencedLibraries": ["lib/**/*.jar"]
+}
+{
   "version": "0.2.0",
   "configurations": [
     {
