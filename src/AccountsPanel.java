@@ -113,7 +113,11 @@ public class AccountsPanel extends JPanel {
             SELECT code, name, type
             FROM accounts
             WHERE owner_username = ? AND active = 1
+<<<<<<< HEAD
             ORDER BY CAST(code AS INTEGER)
+=======
+            ORDER BY code::INTEGER ASC
+>>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
             """;
 
         java.util.List<Object[]> rows = new java.util.ArrayList<>();

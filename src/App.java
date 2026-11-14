@@ -1,9 +1,11 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+<<<<<<< HEAD
 
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+>>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
 import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -1197,7 +1199,7 @@ profileMenu.add(logoutMenuItem);
             content.setBorder(new EmptyBorder(28, 36, 28, 36));
             content.setOpaque(false);
 
-            JLabel heading = new JLabel("Hey, Student!");
+           JLabel heading = new JLabel("Hey, " + username + "!");
             heading.setForeground(DARK_TEXT);
             heading.setFont(HomeFonts.poppinsSemiBold(30));
             heading.setAlignmentX(Component.LEFT_ALIGNMENT);
