@@ -1,7 +1,7 @@
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 
 /** Read-only chart of accounts (the account list is fixed for everyone). */
 public class AccountsPanel extends JPanel {
@@ -113,11 +113,7 @@ public class AccountsPanel extends JPanel {
             SELECT code, name, type
             FROM accounts
             WHERE owner_username = ? AND active = 1
-<<<<<<< HEAD
-            ORDER BY CAST(code AS INTEGER)
-=======
-            ORDER BY code::INTEGER ASC
->>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
+            ORDER BY code::INTEGER AS
             """;
 
         java.util.List<Object[]> rows = new java.util.ArrayList<>();
