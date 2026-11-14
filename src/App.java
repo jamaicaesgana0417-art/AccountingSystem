@@ -1,11 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-<<<<<<< HEAD
-
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-
->>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
 import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -1910,13 +1906,14 @@ String iconText;
         private final JTable table = new JTable(model);
         private final JTable frozenAccountTable = new JTable(model);
         private final JComboBox<PeriodOption> periodBox = new JComboBox<>();
+        private boolean loadingPeriods = false;
         private final JTextField searchField = new JTextField(14);
         private final JLabel activeCountLabel = new JLabel("0 active accounts");
         private final JLabel shownCountLabel = new JLabel("0 accounts shown");
         private final JLabel statusLabel = new JLabel("Loading worksheet...");
         private final List<WorksheetRow> worksheetRows = new ArrayList<>();
         private int activeAccountCount;
-        private boolean loadingPeriods;
+
 
         public TwelveColumnarSheet() {
             setLayout(new BorderLayout(0, 16));
@@ -2213,6 +2210,12 @@ String iconText;
                 }
             });
 
+                    periodBox.addActionListener(event -> {
+            if (!loadingPeriods) {
+                refreshWorksheet();
+            }
+        });
+
             refreshWorksheet();
         }
 
@@ -2508,7 +2511,7 @@ String iconText;
                 }
             }
 
-            loadingPeriods = true;
+            loadingPeriods = false;
             try {
                 periodBox.removeAllItems();
                 PeriodOption selection = periods.get(0);
@@ -2614,7 +2617,7 @@ String iconText;
                 FROM accounts
                 WHERE owner_username = ?
                   AND active = 1
-                ORDER BY CAST(code AS INTEGER)
+                ORDER BY Code
                 """;
 
             Map<Integer, AccountInfo> result = new LinkedHashMap<>();

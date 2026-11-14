@@ -525,11 +525,7 @@ public class NewTransactionPanel extends JPanel {
             FROM accounts
             WHERE active = 1
               AND owner_username = ?
-<<<<<<< HEAD
-            ORDER BY CAST(code AS INTEGER)
-=======
-            ORDER BY code::INTEGER ASC
->>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
+            ORDER BY Code
             """;
 
         try (
@@ -828,12 +824,10 @@ public class NewTransactionPanel extends JPanel {
 
     private static class AccountOption {
         private final int id;
-        private final String code;
         private final String name;
 
         AccountOption(int id, String code, String name) {
             this.id = id;
-            this.code = code;
             this.name = name;
         }
 

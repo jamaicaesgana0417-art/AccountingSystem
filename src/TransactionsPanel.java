@@ -515,11 +515,7 @@ public class TransactionsPanel extends JPanel {
             FROM accounts
             WHERE active = 1
             AND owner_username = ?
-<<<<<<< HEAD
-            ORDER BY CAST(code AS INTEGER)
-=======
-            ORDER BY code::INTEGER ASC
->>>>>>> af6879f34bc8c60bbea9ee25834e7c06bb5e1d1f
+            ORDER BY Code
             """;
 
         try (

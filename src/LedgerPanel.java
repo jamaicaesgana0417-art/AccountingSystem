@@ -530,7 +530,7 @@ public class LedgerPanel extends JPanel {
             SELECT id, code, name, type
             FROM accounts
             WHERE owner_username = ?
-            ORDER BY CAST(code AS INTEGER)
+            ORDER BY Code
             """;
 
  try (
@@ -908,13 +908,11 @@ public class LedgerPanel extends JPanel {
 
     private static class AccountOption {
         private final int id;
-        private final String code;
         private final String name;
         private final String type;
 
         AccountOption(int id, String code, String name, String type) {
             this.id = id;
-            this.code = code;
             this.name = name;
             this.type = type;
         }
