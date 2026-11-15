@@ -525,7 +525,7 @@ public class NewTransactionPanel extends JPanel {
             FROM accounts
             WHERE active = 1
               AND owner_username = ?
-            ORDER BY code::INTEGER AS
+            ORDER BY code::INTEGER ASC
             """;
 
         try (

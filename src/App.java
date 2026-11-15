@@ -1,7 +1,3 @@
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -23,6 +19,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 public class App {
 
@@ -2617,7 +2617,7 @@ String iconText;
                 FROM accounts
                 WHERE owner_username = ?
                   AND active = 1
-                ORDER BY code::INTEGER AS
+                ORDER BY code::INTEGER ASC
                 """;
 
             Map<Integer, AccountInfo> result = new LinkedHashMap<>();
