@@ -1352,8 +1352,8 @@ profileMenu.add(logoutMenuItem);
                 navigate
             ));
             quickActions.add(createToolButton(
-                "New Transaction",
-                "Record a debit and credit entry.",
+                "12-Column Worksheet",
+                "Review trial balance, adjustments, and statements.",
                 navigate
             ));
             content.add(dateLabel);
@@ -1560,7 +1560,13 @@ profileMenu.add(logoutMenuItem);
                     Math.min(255, accent.getGreen() + 105),
                     Math.min(255, accent.getBlue() + 105)
                 ));
-                g2.fillOval(0, 0, getWidth(), getHeight());
+                int diameter = Math.min(getWidth(), getHeight());
+                g2.fillOval(
+                    (getWidth() - diameter) / 2,
+                    (getHeight() - diameter) / 2,
+                    diameter - 1,
+                    diameter - 1
+                );
                 g2.dispose();
                 super.paintComponent(graphics);
             }
@@ -1568,7 +1574,15 @@ profileMenu.add(logoutMenuItem);
         icon.setForeground(accent);
         icon.setFont(new Font("Poppins", Font.BOLD, 16));
         icon.setOpaque(false);
-        icon.setPreferredSize(new Dimension(34, 34));
+        Dimension iconSize = new Dimension(38, 38);
+        icon.setPreferredSize(iconSize);
+        icon.setMinimumSize(iconSize);
+        icon.setMaximumSize(iconSize);
+
+        // Wrapper stops BorderLayout from stretching the circle into an oval.
+        JPanel iconHolder = new JPanel(new GridBagLayout());
+        iconHolder.setOpaque(false);
+        iconHolder.add(icon);
 
         JLabel titleLabel = new JLabel(title);
         titleLabel.setForeground(MUTED_TEXT);
@@ -1590,7 +1604,7 @@ profileMenu.add(logoutMenuItem);
         labels.add(Box.createVerticalStrut(1));
         labels.add(descriptionLabel);
 
-        card.add(icon, BorderLayout.WEST);
+        card.add(iconHolder, BorderLayout.WEST);
         card.add(labels, BorderLayout.CENTER);
         return card;
     }
@@ -1622,6 +1636,7 @@ String iconText;
         case "Accounts":
         case "General Ledger":
         case "Balance Sheet":
+        case "12-Column Worksheet":
             iconText = "▤";
             break;
 
@@ -1856,11 +1871,12 @@ String iconText;
         private static final Color INCOME_SUB_BG = new Color(219, 246, 236);
         private static final Color EQUITY_SUB_BG = new Color(255, 240, 218);
         private static final Color BALANCE_SUB_BG = new Color(226, 238, 250);
-        private static final int ACCOUNT_COLUMN_WIDTH = 205;
+        private static final Color GROUP_LINE = new Color(150, 165, 192);
+        private static final int ACCOUNT_COLUMN_WIDTH = 215;
         private static final int AMOUNT_COLUMN_WIDTH = 78;
-        private static final int MIN_AMOUNT_COLUMN_WIDTH = 64;
-        private static final int GROUP_TITLE_HEIGHT = 56;
-        private static final int SUBHEADER_HEIGHT = 42;
+        private static final int MIN_AMOUNT_COLUMN_WIDTH = 80;
+        private static final int GROUP_TITLE_HEIGHT = 40;
+        private static final int SUBHEADER_HEIGHT = 30;
         private static final int GROUP_HEADER_HEIGHT = GROUP_TITLE_HEIGHT + SUBHEADER_HEIGHT;
         private static final List<String> GROUP_NAMES = List.of(
             "Unadjusted Trial Balance",
@@ -1903,7 +1919,17 @@ String iconText;
             }
         };
 
-        private final JTable table = new JTable(model);
+        // Swing normally resets the scroll pane's heading area when a table is attached,
+        // which would wipe our custom group headings, so those hooks are switched off.
+        private final JTable table = new JTable(model) {
+            @Override
+            protected void configureEnclosingScrollPane() {
+            }
+
+            @Override
+            protected void unconfigureEnclosingScrollPane() {
+            }
+        };
         private final JTable frozenAccountTable = new JTable(model);
         private final JComboBox<PeriodOption> periodBox = new JComboBox<>();
         private boolean loadingPeriods = false;
@@ -1997,7 +2023,7 @@ String iconText;
             toolbar.add(filterPanel, BorderLayout.CENTER);
             toolbar.add(actionPanel, BorderLayout.EAST);
 
-            table.setRowHeight(31);
+            table.setRowHeight(28);
             table.setFillsViewportHeight(true);
             table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
             table.setFont(new Font("SansSerif", Font.PLAIN, 10));
@@ -2034,6 +2060,13 @@ String iconText;
             for (int index = frozenAccountTable.getColumnCount() - 1; index > 0; index--) {
                 frozenAccountTable.removeColumn(frozenAccountTable.getColumnModel().getColumn(index));
             }
+            // The frozen table already shows Account names, so hide Account in the scrolling table.
+            for (int index = table.getColumnCount() - 1; index >= 0; index--) {
+                if (table.getColumnModel().getColumn(index).getModelIndex() == 0) {
+                    table.removeColumn(table.getColumnModel().getColumn(index));
+                    break;
+                }
+            }
             frozenAccountTable.getColumnModel().getColumn(0).setPreferredWidth(ACCOUNT_COLUMN_WIDTH);
             frozenAccountTable.getColumnModel().getColumn(0).setMinWidth(ACCOUNT_COLUMN_WIDTH);
             frozenAccountTable.getColumnModel().getColumn(0).setMaxWidth(ACCOUNT_COLUMN_WIDTH);
@@ -2063,6 +2096,7 @@ String iconText;
 
                     int modelColumn = table.convertColumnIndexToModel(column);
                     boolean summaryRow = isSummaryRow(table, row);
+                    int sidePadding = 10;
                     if (modelColumn == 0) {
                         setHorizontalAlignment(SwingConstants.LEFT);
                         setForeground(TEXT);
@@ -2077,12 +2111,25 @@ String iconText;
                         setForeground(TEXT);
                     }
                     setFont(getFont().deriveFont(summaryRow ? Font.BOLD : Font.PLAIN));
+                    Color rowColor = bodyColor(modelColumn, row % 2 == 0);
                     setBackground(
                         isSelected ? new Color(220, 231, 255)
-                            : summaryRow ? new Color(230, 236, 247)
-                            : row % 2 == 0 ? CARD_BG : new Color(239, 245, 255)
+                            : summaryRow ? summaryColor(modelColumn)
+                            : rowColor
                     );
-                    setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
+                    // A heavier line closes each group so the body matches the headings.
+                    boolean groupEnd = modelColumn == 0 || modelColumn % 2 == 0;
+                    setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(
+                            0, 0, 1, groupEnd ? 2 : 1, groupEnd ? GROUP_LINE : BORDER
+                        ),
+                        BorderFactory.createEmptyBorder(
+                            0,
+                            modelColumn == 0 ? sidePadding : 4,
+                            0,
+                            modelColumn == 0 ? 4 : sidePadding
+                        )
+                    ));
                     return this;
                 }
             };
@@ -2106,65 +2153,27 @@ String iconText;
             tableScrollPane.setVerticalScrollBarPolicy(
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
             );
+            // Headings live inside the scroll pane itself, so they always scroll and
+            // size together with the table body (no separate strip to drift out of line).
             JPanel groupHeader = buildGroupHeader();
-            tableScrollPane.setColumnHeaderView(null);
+            tableScrollPane.setColumnHeaderView(groupHeader);
             tableScrollPane.setRowHeaderView(frozenAccountTable);
+            tableScrollPane.setCorner(ScrollPaneConstants.UPPER_LEFT_CORNER, buildAccountHeader());
+            JPanel upperRightCorner = new JPanel();
+            upperRightCorner.setBackground(HEADER_BG);
+            tableScrollPane.setCorner(ScrollPaneConstants.UPPER_RIGHT_CORNER, upperRightCorner);
             tableScrollPane.getViewport().setBackground(CARD_BG);
             tableScrollPane.getRowHeader().setBackground(CARD_BG);
             tableScrollPane.getHorizontalScrollBar().setUnitIncrement(24);
             tableScrollPane.getHorizontalScrollBar().setBlockIncrement(120);
+            JViewport groupHeaderViewport = tableScrollPane.getColumnHeader();
 
-            JViewport groupHeaderViewport = new JViewport();
-            groupHeaderViewport.setView(groupHeader);
-            groupHeaderViewport.setPreferredSize(
-                new Dimension(AMOUNT_COLUMN_WIDTH * 12, GROUP_HEADER_HEIGHT)
-            );
-            JPanel headerStrip = new JPanel(new BorderLayout());
-            headerStrip.setBackground(CARD_BG);
-            headerStrip.add(buildAccountHeader(), BorderLayout.WEST);
-            headerStrip.add(groupHeaderViewport, BorderLayout.CENTER);
-
-            JPanel verticalScrollbarGutter = new JPanel();
-            verticalScrollbarGutter.setBackground(CARD_BG);
-            verticalScrollbarGutter.setPreferredSize(new Dimension(
-                tableScrollPane.getVerticalScrollBar().getPreferredSize().width,
-                GROUP_HEADER_HEIGHT
-            ));
-            verticalScrollbarGutter.setVisible(
-                tableScrollPane.getVerticalScrollBar().isVisible()
-            );
-            headerStrip.add(verticalScrollbarGutter, BorderLayout.EAST);
-
-            tableScrollPane.getHorizontalScrollBar().addAdjustmentListener(event -> {
-                Point position = groupHeaderViewport.getViewPosition();
-                position.x = Math.min(
-                    event.getValue(),
-                    Math.max(0, groupHeader.getWidth() - groupHeaderViewport.getWidth())
-                );
-                groupHeaderViewport.setViewPosition(position);
-            });
-            tableScrollPane.getVerticalScrollBar().addComponentListener(
-                new java.awt.event.ComponentAdapter() {
-                    @Override
-                    public void componentShown(java.awt.event.ComponentEvent event) {
-                        verticalScrollbarGutter.setVisible(true);
-                        headerStrip.revalidate();
-                    }
-
-                    @Override
-                    public void componentHidden(java.awt.event.ComponentEvent event) {
-                        verticalScrollbarGutter.setVisible(false);
-                        headerStrip.revalidate();
-                    }
-                }
-            );
             tableScrollPane.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
                 @Override
                 public void componentResized(java.awt.event.ComponentEvent event) {
                     resizeAmountColumns(tableScrollPane, groupHeader, groupHeaderViewport);
                 }
             });
-            sheetContainer.add(headerStrip, BorderLayout.NORTH);
             sheetContainer.add(tableScrollPane, BorderLayout.CENTER);
 
             statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
@@ -2220,35 +2229,68 @@ String iconText;
         }
 
         private JPanel buildGroupHeader() {
-            JPanel header = new JPanel(new GridLayout(1, 6));
+            JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             header.setBackground(HEADER_BG);
             header.setPreferredSize(new Dimension(AMOUNT_COLUMN_WIDTH * 12, GROUP_HEADER_HEIGHT));
 
             for (String groupName : GROUP_NAMES) {
-                JPanel group = new JPanel(new GridLayout(2, 1));
+                // BorderLayout keeps the title row at GROUP_TITLE_HEIGHT, exactly like the Account header.
+                JPanel group = new JPanel(new BorderLayout());
                 group.setBackground(HEADER_BG);
                 group.setPreferredSize(new Dimension(AMOUNT_COLUMN_WIDTH * 2, GROUP_HEADER_HEIGHT));
-                group.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
+                group.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 2, GROUP_LINE));
 
                 JLabel title = new JLabel(groupName, SwingConstants.CENTER);
                 title.setOpaque(true);
                 title.setBackground(HEADER_BG);
-                title.setFont(new Font("SansSerif", Font.BOLD, 9));
+                title.setFont(new Font("SansSerif", Font.BOLD, 10));
                 title.setForeground(Color.WHITE);
                 title.setPreferredSize(new Dimension(AMOUNT_COLUMN_WIDTH * 2, GROUP_TITLE_HEIGHT));
-                group.add(title);
+                group.add(title, BorderLayout.NORTH);
 
                 JPanel subheaders = new JPanel(new GridLayout(1, 2));
                 Color subheaderColor = subheaderColor(groupName);
                 subheaders.setBackground(subheaderColor);
-                JLabel debit = createSubheader("Debit", subheaderColor);
-                JLabel credit = createSubheader("Credit", subheaderColor);
+                JLabel debit = createSubheader("Debit", subheaderColor, false);
+                JLabel credit = createSubheader("Credit", subheaderColor, true);
                 subheaders.add(debit);
                 subheaders.add(credit);
-                group.add(subheaders);
+                group.add(subheaders, BorderLayout.CENTER);
                 header.add(group);
             }
             return header;
+        }
+
+        private static Color bodyColor(int modelColumn, boolean evenRow) {
+            Color even;
+            Color odd;
+            if (modelColumn == 7 || modelColumn == 8) {
+                even = new Color(243, 252, 248);
+                odd = new Color(232, 247, 240);
+            } else if (modelColumn == 9 || modelColumn == 10) {
+                even = new Color(255, 250, 242);
+                odd = new Color(255, 243, 228);
+            } else if (modelColumn == 11 || modelColumn == 12) {
+                even = new Color(243, 248, 254);
+                odd = new Color(232, 241, 252);
+            } else {
+                even = CARD_BG;
+                odd = new Color(239, 245, 255);
+            }
+            return evenRow ? even : odd;
+        }
+
+        private static Color summaryColor(int modelColumn) {
+            if (modelColumn == 7 || modelColumn == 8) {
+                return INCOME_SUB_BG;
+            }
+            if (modelColumn == 9 || modelColumn == 10) {
+                return EQUITY_SUB_BG;
+            }
+            if (modelColumn == 11 || modelColumn == 12) {
+                return BALANCE_SUB_BG;
+            }
+            return HEADER_SUB_BG;
         }
 
         private Color subheaderColor(String groupName) {
@@ -2274,28 +2316,28 @@ String iconText;
                 return;
             }
 
-            table.getColumnModel().getColumn(0).setPreferredWidth(ACCOUNT_COLUMN_WIDTH);
-            table.getColumnModel().getColumn(0).setMinWidth(ACCOUNT_COLUMN_WIDTH);
-            table.getColumnModel().getColumn(0).setMaxWidth(ACCOUNT_COLUMN_WIDTH);
-
-            int amountAreaWidth = Math.max(0, viewportWidth - ACCOUNT_COLUMN_WIDTH);
-            int amountColumnCount = table.getColumnCount() - 1;
-            int columnWidth = Math.max(MIN_AMOUNT_COLUMN_WIDTH, amountAreaWidth / amountColumnCount);
-            for (int index = 1; index < table.getColumnCount(); index++) {
-                table.getColumnModel().getColumn(index).setPreferredWidth(columnWidth);
+            int amountColumnCount = table.getColumnCount();
+            int columnWidth = Math.max(MIN_AMOUNT_COLUMN_WIDTH, viewportWidth / amountColumnCount);
+            int leftover = Math.max(0, viewportWidth - columnWidth * amountColumnCount);
+            int totalWidth = 0;
+            for (int index = 0; index < table.getColumnCount(); index++) {
+                int width = columnWidth + (index == amountColumnCount - 1 ? leftover : 0);
                 table.getColumnModel().getColumn(index).setMinWidth(MIN_AMOUNT_COLUMN_WIDTH);
+                table.getColumnModel().getColumn(index).setPreferredWidth(width);
+                table.getColumnModel().getColumn(index).setWidth(width);
+                totalWidth += width;
             }
 
-            groupHeader.setPreferredSize(new Dimension(columnWidth * 12, GROUP_HEADER_HEIGHT));
-            groupHeader.setSize(columnWidth * 12, GROUP_HEADER_HEIGHT);
-            groupHeaderViewport.setViewSize(new Dimension(columnWidth * 12, GROUP_HEADER_HEIGHT));
+            groupHeader.setPreferredSize(new Dimension(totalWidth, GROUP_HEADER_HEIGHT));
+            groupHeader.setSize(totalWidth, GROUP_HEADER_HEIGHT);
+            groupHeaderViewport.setViewSize(new Dimension(totalWidth, GROUP_HEADER_HEIGHT));
             for (Component component : groupHeader.getComponents()) {
                 if (!(component instanceof JPanel)) {
                     continue;
                 }
                 JPanel group = (JPanel) component;
                 int groupIndex = groupHeader.getComponentZOrder(group);
-                int firstColumn = groupIndex * 2 + 1;
+                int firstColumn = groupIndex * 2;
                 int groupWidth =
                     table.getColumnModel().getColumn(firstColumn).getPreferredWidth()
                         + table.getColumnModel().getColumn(firstColumn + 1).getPreferredWidth();
@@ -2310,14 +2352,17 @@ String iconText;
             scrollPane.revalidate();
         }
 
-        private JLabel createSubheader(String text, Color background) {
-            JLabel label = new JLabel(text, SwingConstants.CENTER);
+        private JLabel createSubheader(String text, Color background, boolean lastInGroup) {
+            JLabel label = new JLabel(text, SwingConstants.RIGHT);
             label.setOpaque(true);
             label.setBackground(background);
-            label.setFont(new Font("SansSerif", Font.BOLD, 9));
+            label.setFont(new Font("SansSerif", Font.BOLD, 10));
             label.setForeground(TEXT);
             label.setPreferredSize(new Dimension(AMOUNT_COLUMN_WIDTH, SUBHEADER_HEIGHT));
-            label.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 1, BORDER));
+            label.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 1, lastInGroup ? 0 : 1, BORDER),
+                BorderFactory.createEmptyBorder(0, 4, 0, 10)
+            ));
             return label;
         }
 
@@ -2331,7 +2376,7 @@ String iconText;
             title.setForeground(Color.WHITE);
             title.setFont(new Font("SansSerif", Font.BOLD, 10));
             title.setPreferredSize(new Dimension(ACCOUNT_COLUMN_WIDTH, GROUP_TITLE_HEIGHT));
-            title.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+            title.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 4));
 
             JLabel subheader = new JLabel("ACCOUNT", SwingConstants.LEFT);
             subheader.setOpaque(true);
@@ -2340,9 +2385,10 @@ String iconText;
             subheader.setFont(new Font("SansSerif", Font.BOLD, 9));
             subheader.setPreferredSize(new Dimension(ACCOUNT_COLUMN_WIDTH, SUBHEADER_HEIGHT));
             subheader.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 1, 1, BORDER),
-                BorderFactory.createEmptyBorder(0, 8, 0, 8)
+                BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER),
+                BorderFactory.createEmptyBorder(0, 10, 0, 4)
             ));
+            header.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 2, GROUP_LINE));
 
             header.add(title, BorderLayout.NORTH);
             header.add(subheader, BorderLayout.CENTER);
@@ -2511,7 +2557,7 @@ String iconText;
                 }
             }
 
-            loadingPeriods = false;
+            loadingPeriods = true;
             try {
                 periodBox.removeAllItems();
                 PeriodOption selection = periods.get(0);
