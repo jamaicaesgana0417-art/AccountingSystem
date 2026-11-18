@@ -1988,11 +1988,6 @@ String iconText;
 
             JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
             filterPanel.setOpaque(false);
-            JLabel periodLabel = new JLabel("Date");
-            periodLabel.setFont(new Font("SansSerif", Font.BOLD, 10));
-            periodLabel.setForeground(MUTED);
-            filterPanel.add(periodLabel);
-            filterPanel.add(periodBox);
             filterPanel.add(searchField);
             filterPanel.add(activeCountLabel);
 
@@ -2844,6 +2839,9 @@ String iconText;
         }
 
         private static String formatMoney(BigDecimal value) {
+            if (value.signum() == 0) {
+                return "-";
+            }
             return value.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
         }
 
