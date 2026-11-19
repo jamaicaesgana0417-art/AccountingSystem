@@ -642,7 +642,7 @@ public class TransactionsPanel extends JPanel {
         if (!keyword.isEmpty()) {
             sql.append("""
                  AND (
-                    instr(lower(CAST(t.id AS TEXT)), lower(?)) > 0
+                    instr(lower(CAST(t.user_txn_no AS TEXT)), lower(?)) > 0
                     OR instr(lower(t.description), lower(?)) > 0
                     OR instr(lower(da.code || ' ' || da.name), lower(?)) > 0
                     OR instr(lower(ca.code || ' ' || ca.name), lower(?)) > 0

@@ -656,14 +656,18 @@ public class NewTransactionPanel extends JPanel {
                 centavos
             );
 
-            clearForm();
-            updatePreview();
-
             JOptionPane.showMessageDialog(
                 this,
-                "Transaction #" + transactionId
-                    + " posted successfully."
+                "Transaction #" + transactionId + " posted successfully.\n\n"
+                    + "Date: " + date + "\n"
+                    + "Description: " + description + "\n"
+                    + "Debit: " + debit + "\n"
+                    + "Credit: " + credit + "\n"
+                    + "Amount: " + BigDecimal.valueOf(centavos, 2)
             );
+
+            clearForm();
+            updatePreview();
         } catch (SQLException exception) {
             showError("Could not post the transaction.", exception);
 
@@ -710,16 +714,31 @@ public class NewTransactionPanel extends JPanel {
                     }
                 }
 
+                // Serialize number assignment per user (released on commit/rollback)
+                try (
+                    PreparedStatement lock = connection.prepareStatement(
+                        "SELECT pg_advisory_xact_lock(hashtext(?))"
+                    )
+                ) {
+                    lock.setString(1, Session.getCurrentUser());
+                    lock.execute();
+                }
+
                 String transactionSql = """
                     INSERT INTO transactions (
                         transaction_date,
                         description,
-                        owner_username
-                    ) VALUES (?, ?, ?)
-                    RETURNING id
+                        owner_username,
+                        user_txn_no
+                    )
+                    SELECT ?, ?, ?, COALESCE(MAX(user_txn_no), 0) + 1
+                    FROM transactions
+                    WHERE owner_username = ?
+                    RETURNING id, user_txn_no
                     """;
 
                 long transactionId;
+                long userTxnNo;
 
                 try (
                     PreparedStatement statement =
@@ -731,6 +750,10 @@ public class NewTransactionPanel extends JPanel {
                         3,
                         Session.getCurrentUser()
                     );
+                    statement.setString(
+                        4,
+                        Session.getCurrentUser()
+                    );
 
                     try (ResultSet result = statement.executeQuery()) {
                         if (!result.next()) {
@@ -740,6 +763,7 @@ public class NewTransactionPanel extends JPanel {
                         }
 
                         transactionId = result.getLong("id");
+                        userTxnNo = result.getLong("user_txn_no");
                     }
                 }
 
@@ -772,7 +796,7 @@ public class NewTransactionPanel extends JPanel {
                 }
 
                 connection.commit();
-                return transactionId;
+                return userTxnNo;
 
             } catch (SQLException exception) {
                 try {

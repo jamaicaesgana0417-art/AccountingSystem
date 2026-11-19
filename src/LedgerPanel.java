@@ -622,6 +622,7 @@ public class LedgerPanel extends JPanel {
         String sql = """
             SELECT
                 t.id AS transaction_id,
+                t.user_txn_no,
                 t.transaction_date,
                 t.description,
                 j.account_id,
@@ -697,6 +698,7 @@ public class LedgerPanel extends JPanel {
                         }
                         transaction = new LedgerTransaction(
                             transactionId,
+                            result.getLong("user_txn_no"),
                             LocalDate.parse(
                                 result.getString("transaction_date")
                             ),
@@ -817,7 +819,7 @@ public class LedgerPanel extends JPanel {
         if (start == null || !transaction.date.isBefore(start)) {
             entries.add(new Object[] {
                 transaction.date.toString(),
-                String.valueOf(transaction.id),
+                String.valueOf(transaction.txnNo),
                 transaction.description,
                 String.join(", ", transaction.debitAccounts),
                 String.join(", ", transaction.creditAccounts),
@@ -831,6 +833,7 @@ public class LedgerPanel extends JPanel {
 
     private static class LedgerTransaction {
         private final long id;
+        private final long txnNo;
         private final LocalDate date;
         private final String description;
         private final List<String> debitAccounts = new ArrayList<>();
@@ -838,8 +841,11 @@ public class LedgerPanel extends JPanel {
         private BigDecimal selectedDebit = zero();
         private BigDecimal selectedCredit = zero();
 
-        LedgerTransaction(long id, LocalDate date, String description) {
+        LedgerTransaction(
+            long id, long txnNo, LocalDate date, String description
+        ) {
             this.id = id;
+            this.txnNo = txnNo;
             this.date = date;
             this.description = description;
         }

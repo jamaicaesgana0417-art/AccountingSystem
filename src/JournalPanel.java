@@ -1,7 +1,3 @@
-import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -11,6 +7,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 public class JournalPanel extends JPanel {
 
@@ -598,7 +598,7 @@ public class JournalPanel extends JPanel {
         if (!keyword.isEmpty()) {
             sql.append("""
                  AND (
-                    instr(lower(CAST(t.id AS TEXT)), lower(?)) > 0
+                    instr(lower(CAST(t.user_txn_no AS TEXT)), lower(?)) > 0
                     OR instr(lower(t.description), lower(?)) > 0
                     OR EXISTS (
                         SELECT 1
