@@ -1925,10 +1925,6 @@ String iconText;
             @Override
             protected void configureEnclosingScrollPane() {
             }
-
-            @Override
-            protected void unconfigureEnclosingScrollPane() {
-            }
         };
         private final JTable frozenAccountTable = new JTable(model);
         private final JComboBox<PeriodOption> periodBox = new JComboBox<>();
@@ -2243,14 +2239,14 @@ String iconText;
                 title.setPreferredSize(new Dimension(AMOUNT_COLUMN_WIDTH * 2, GROUP_TITLE_HEIGHT));
                 group.add(title, BorderLayout.NORTH);
 
-                JPanel subheaders = new JPanel(new GridLayout(1, 2));
+                JPanel subheader = new JPanel(new GridLayout(1, 2));
                 Color subheaderColor = subheaderColor(groupName);
-                subheaders.setBackground(subheaderColor);
+                subheader.setBackground(subheaderColor);
                 JLabel debit = createSubheader("Debit", subheaderColor, false);
                 JLabel credit = createSubheader("Credit", subheaderColor, true);
-                subheaders.add(debit);
-                subheaders.add(credit);
-                group.add(subheaders, BorderLayout.CENTER);
+                subheader.add(debit);
+                subheader.add(credit);
+                group.add(subheader, BorderLayout.CENTER);
                 header.add(group);
             }
             return header;

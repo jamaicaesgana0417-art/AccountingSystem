@@ -664,7 +664,6 @@ public class NewTransactionPanel extends JPanel {
                 "Transaction #" + transactionId
                     + " posted successfully."
             );
-
         } catch (SQLException exception) {
             showError("Could not post the transaction.", exception);
 
