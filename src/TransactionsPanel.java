@@ -41,11 +41,15 @@ public class TransactionsPanel extends JPanel {
     private final DefaultTableModel model =
         new DefaultTableModel(
             new String[] {
+                "No.",
                 "Date",
                 "Description",
                 "Debit Account",
                 "Credit Account",
-                "Amount (₱)"
+                "Amount (₱)",
+                "ID",
+                "DebitID",
+                "CreditID"
             },
             0
         ) {
@@ -56,7 +60,7 @@ public class TransactionsPanel extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 4) {
+                if (column == 5) {
                     return BigDecimal.class;
                 }
 
@@ -118,6 +122,10 @@ public class TransactionsPanel extends JPanel {
         JButton clearButton = new JButton("Clear Filters");
         JButton refreshButton = new JButton("Refresh");
         JButton exportButton = new JButton("Export CSV");
+        JButton editButton = new JButton("Edit Selected");
+        JButton deleteButton = new JButton("Delete Selected");
+        styleActionButton(editButton, true);
+        styleActionButton(deleteButton, true);
         styleActionButton(applyButton, true);
         styleActionButton(clearButton, true);
         styleActionButton(refreshButton, true);
@@ -133,6 +141,8 @@ public class TransactionsPanel extends JPanel {
         leftActions.add(applyButton);
         leftActions.add(clearButton);
         leftActions.add(exportButton);
+        leftActions.add(editButton);
+        leftActions.add(deleteButton);
 
         actions.add(leftActions, BorderLayout.WEST);
         actions.add(refreshButton, BorderLayout.EAST);
@@ -176,7 +186,7 @@ public class TransactionsPanel extends JPanel {
         sorter.setSortsOnUpdates(true);
         table.setRowSorter(sorter);
 
-        int[] widths = {155, 291, 205, 205, 160};
+        int[] widths = {60, 120, 260, 190, 190, 150};
 
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel()
@@ -203,8 +213,13 @@ public class TransactionsPanel extends JPanel {
         moneyRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
 
         table.getColumnModel()
-            .getColumn(4)
+            .getColumn(5)
             .setCellRenderer(moneyRenderer);
+
+        // Hide the helper columns (ID, DebitID, CreditID); the model keeps them.
+        for (int i = 0; i < 3; i++) {
+            table.removeColumn(table.getColumnModel().getColumn(6));
+        }
 
         add(top, BorderLayout.NORTH);
         JScrollPane tableScrollPane = new JScrollPane(table);
@@ -247,6 +262,8 @@ public class TransactionsPanel extends JPanel {
         });
 
         exportButton.addActionListener(event -> exportCsv());
+        editButton.addActionListener(event -> editSelectedTransaction());
+        deleteButton.addActionListener(event -> deleteSelectedTransaction());
     }
 
     private JPanel filterField(String labelText, JComponent input) {
@@ -603,6 +620,9 @@ public class TransactionsPanel extends JPanel {
         StringBuilder sql = new StringBuilder("""
             SELECT
                 t.id,
+                t.user_txn_no,
+                d.account_id AS debit_id,
+                c.account_id AS credit_id,
                 t.transaction_date,
                 t.description,
                 da.name AS debit_account,
@@ -681,11 +701,15 @@ public class TransactionsPanel extends JPanel {
                     );
 
                     rows.add(new Object[] {
+                        result.getLong("user_txn_no"),
                         result.getString("transaction_date"),
                         result.getString("description"),
                         result.getString("debit_account"),
                         result.getString("credit_account"),
-                        amount
+                        amount,
+                        result.getLong("id"),
+                        result.getInt("debit_id"),
+                        result.getInt("credit_id")
                     });
 
                     total = total.add(amount);
@@ -717,6 +741,288 @@ public class TransactionsPanel extends JPanel {
             "Displayed transactions: " + rows.size()
                 + " | Total amount: ₱ " + total.toPlainString()
         );
+    }
+
+    private int selectedModelRow(String action) {
+        int viewRow = table.getSelectedRow();
+
+        if (viewRow < 0) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Select a transaction to " + action + " first.",
+                "No Transaction Selected",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+            return -1;
+        }
+
+        return table.convertRowIndexToModel(viewRow);
+    }
+
+    private void deleteSelectedTransaction() {
+        int row = selectedModelRow("delete");
+
+        if (row < 0) {
+            return;
+        }
+
+        long id = (Long) model.getValueAt(row, 6);
+        Object number = model.getValueAt(row, 0);
+
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            "Delete transaction #" + number + "?\n\n"
+                + model.getValueAt(row, 1) + " | "
+                + model.getValueAt(row, 2) + "\n"
+                + "This cannot be undone.",
+            "Delete Transaction",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+
+        if (choice != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try (Connection connection = Database.connect()) {
+            connection.setAutoCommit(false);
+
+            try {
+                try (
+                    PreparedStatement lines = connection.prepareStatement(
+                        """
+                        DELETE FROM journal_lines
+                        WHERE transaction_id IN (
+                            SELECT id FROM transactions
+                            WHERE id = ? AND owner_username = ?
+                        )
+                        """
+                    )
+                ) {
+                    lines.setLong(1, id);
+                    lines.setString(2, Session.getCurrentUser());
+                    lines.executeUpdate();
+                }
+
+                try (
+                    PreparedStatement transaction = connection.prepareStatement(
+                        "DELETE FROM transactions WHERE id = ? AND owner_username = ?"
+                    )
+                ) {
+                    transaction.setLong(1, id);
+                    transaction.setString(2, Session.getCurrentUser());
+                    transaction.executeUpdate();
+                }
+
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            showDatabaseError("Could not delete the transaction.", exception);
+            return;
+        }
+
+        loadTransactions();
+    }
+
+    private void editSelectedTransaction() {
+        int row = selectedModelRow("edit");
+
+        if (row < 0) {
+            return;
+        }
+
+        long id = (Long) model.getValueAt(row, 6);
+        int debitId = (Integer) model.getValueAt(row, 7);
+        int creditId = (Integer) model.getValueAt(row, 8);
+        BigDecimal currentAmount = (BigDecimal) model.getValueAt(row, 5);
+
+        JTextField dateField =
+            new JTextField(String.valueOf(model.getValueAt(row, 1)), 18);
+        JTextField descriptionField =
+            new JTextField(String.valueOf(model.getValueAt(row, 2)), 18);
+        JTextField amountField =
+            new JTextField(currentAmount.toPlainString(), 18);
+        JComboBox<AccountOption> debitBox = new JComboBox<>();
+        JComboBox<AccountOption> creditBox = new JComboBox<>();
+
+        for (int i = 0; i < accountBox.getItemCount(); i++) {
+            AccountOption option = accountBox.getItemAt(i);
+
+            if (option.id == null) {
+                continue;
+            }
+
+            debitBox.addItem(option);
+            creditBox.addItem(option);
+
+            if (option.id == debitId) {
+                debitBox.setSelectedItem(option);
+            }
+
+            if (option.id == creditId) {
+                creditBox.setSelectedItem(option);
+            }
+        }
+
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
+        form.add(new JLabel("Date (YYYY-MM-DD)"));
+        form.add(dateField);
+        form.add(new JLabel("Description"));
+        form.add(descriptionField);
+        form.add(new JLabel("Debit account"));
+        form.add(debitBox);
+        form.add(new JLabel("Credit account"));
+        form.add(creditBox);
+        form.add(new JLabel("Amount (₱)"));
+        form.add(amountField);
+
+        while (true) {
+            int choice = JOptionPane.showConfirmDialog(
+                this,
+                form,
+                "Edit Transaction #" + model.getValueAt(row, 0),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (choice != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            LocalDate date;
+            long centavos;
+            String description = descriptionField.getText().trim();
+            AccountOption debit = (AccountOption) debitBox.getSelectedItem();
+            AccountOption credit = (AccountOption) creditBox.getSelectedItem();
+            String error = null;
+
+            try {
+                date = LocalDate.parse(dateField.getText().trim());
+            } catch (DateTimeParseException exception) {
+                date = null;
+                error = "Enter a valid date using YYYY-MM-DD.";
+            }
+
+            centavos = 0;
+
+            try {
+                BigDecimal amount = new BigDecimal(amountField.getText().trim());
+
+                if (amount.signum() <= 0 || amount.scale() > 2) {
+                    error = "Amount must be positive with at most 2 decimals.";
+                } else {
+                    centavos = amount.movePointRight(2).longValueExact();
+                }
+            } catch (NumberFormatException | ArithmeticException exception) {
+                error = "Enter a valid amount.";
+            }
+
+            if (error == null && description.isEmpty()) {
+                error = "Description is required.";
+            }
+
+            if (error == null && (debit == null || credit == null)) {
+                error = "Select both accounts.";
+            }
+
+            if (error == null && debit.id.equals(credit.id)) {
+                error = "Debit and credit accounts must be different.";
+            }
+
+            if (error != null) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    error,
+                    "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                continue;
+            }
+
+            if (updateTransaction(
+                id, date, description, debit.id, credit.id, centavos
+            )) {
+                loadTransactions();
+            }
+
+            return;
+        }
+    }
+
+    private boolean updateTransaction(
+        long id,
+        LocalDate date,
+        String description,
+        int debitId,
+        int creditId,
+        long centavos
+    ) {
+        try (Connection connection = Database.connect()) {
+            connection.setAutoCommit(false);
+
+            try {
+                try (
+                    PreparedStatement statement = connection.prepareStatement(
+                        """
+                        UPDATE transactions
+                        SET transaction_date = ?, description = ?
+                        WHERE id = ? AND owner_username = ?
+                        """
+                    )
+                ) {
+                    statement.setString(1, date.toString());
+                    statement.setString(2, description);
+                    statement.setLong(3, id);
+                    statement.setString(4, Session.getCurrentUser());
+
+                    if (statement.executeUpdate() != 1) {
+                        throw new SQLException("Transaction not found.");
+                    }
+                }
+
+                try (
+                    PreparedStatement statement = connection.prepareStatement(
+                        """
+                        UPDATE journal_lines
+                        SET account_id = ?, debit_centavos = ?
+                        WHERE transaction_id = ? AND debit_centavos > 0
+                        """
+                    )
+                ) {
+                    statement.setInt(1, debitId);
+                    statement.setLong(2, centavos);
+                    statement.setLong(3, id);
+                    statement.executeUpdate();
+                }
+
+                try (
+                    PreparedStatement statement = connection.prepareStatement(
+                        """
+                        UPDATE journal_lines
+                        SET account_id = ?, credit_centavos = ?
+                        WHERE transaction_id = ? AND credit_centavos > 0
+                        """
+                    )
+                ) {
+                    statement.setInt(1, creditId);
+                    statement.setLong(2, centavos);
+                    statement.setLong(3, id);
+                    statement.executeUpdate();
+                }
+
+                connection.commit();
+                return true;
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            showDatabaseError("Could not update the transaction.", exception);
+            return false;
+        }
     }
 
     private LocalDate parseOptionalDate(String text) {
